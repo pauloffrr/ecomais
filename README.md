@@ -1,83 +1,83 @@
-# 🌱 Eco Mais - Smart Recycling Bin System
+# 🌱 Eco Mais - Sistema Inteligente de Lixeira para Reciclagem
 
-**Green-Tech Startup Project** | Triple Validation System (User + Weight + AI Vision)
-
----
-
-## 📋 Project Overview
-
-Eco Mais is a smart recycling system that combines **ESP32-CAM hardware**, **AI-powered vision classification**, and **gamified rewards** to incentivize proper waste segregation. The system uses triple validation to prevent point injection fraud:
-
-1. **👤 User Session**: QR code scan with 3-minute timeout
-2. **⚖️ Weight Validation**: Load cell sensor ensures realistic weights
-3. **🤖 AI Vision**: The Backend runs a YOLOv8 model on the image sent by the ESP32-CAM to classify materials and ensure they match the reported weight and category.
+**Projeto de Startup Green-Tech** | Sistema de Validação Tripla (Usuário + Peso + Visão por IA)
 
 ---
 
-## 🏗️ Architecture Stack
+## 📋 Visão Geral do Projeto
+
+Eco Mais é um sistema inteligente de reciclagem que combina **hardware ESP32-CAM**, **classificação por visão com IA** e **recompensas gamificadas** para incentivar o descarte correto de resíduos. O sistema usa validação tripla para evitar fraude na geração de pontos:
+
+1. **👤 Sessão do Usuário**: leitura de QR code com timeout de 3 minutos
+2. **⚖️ Validação de Peso**: sensor de célula de carga garante pesos realistas
+3. **🤖 Visão por IA**: o backend executa um modelo YOLOv8 na imagem enviada pelo ESP32-CAM para classificar os materiais e garantir que eles correspondam ao peso e à categoria informados.
+
+---
+
+## 🏗️ Stack da Arquitetura
 
 - **Backend**: FastAPI (Python 3.11+)
-- **Database**: MariaDB / MySQL with SQLAlchemy ORM
-- **Hardware**: ESP32-CAM + Load Cell Sensor
-- **Computer Vision**: YOLOv8 (Ultralytics) + OpenCV for recyclable material classification
-- **Authentication**: JWT tokens + HMAC-SHA256 hardware signatures
-- **Background Tasks**: FastAPI BackgroundTasks (native, no Redis/Celery for MVP)
-- **Storage**: Local filesystem (AWS S3 for production)
+- **Banco de Dados**: MariaDB / MySQL com ORM SQLAlchemy
+- **Hardware**: ESP32-CAM + Sensor de Célula de Carga
+- **Visão Computacional**: YOLOv8 (Ultralytics) + OpenCV para classificação de materiais recicláveis
+- **Autenticação**: tokens JWT + assinaturas HMAC-SHA256 do hardware
+- **Tarefas em Segundo Plano**: FastAPI BackgroundTasks (nativo, sem Redis/Celery para o MVP)
+- **Armazenamento**: sistema de arquivos local (AWS S3 para produção)
 
 ---
 
-## 📁 Project Structure
+## 📁 Estrutura do Projeto
 
 ```
 eco_mais/
-├── models.py              # SQLAlchemy database models ✓
-├── database.py            # Database connection & session management ✓
-├── config.py              # Environment configuration with Pydantic ✓
-├── requirements.txt       # Python dependencies ✓
-├── .env.example           # Environment variables template ✓
-├── ARCHITECTURE.md        # Complete system architecture guide ✓
+├── models.py              # Modelos de banco de dados SQLAlchemy ✓
+├── database.py            # Conexão com o banco e gerenciamento de sessão ✓
+├── config.py              # Configuração de ambiente com Pydantic ✓
+├── requirements.txt       # Dependências Python ✓
+├── .env.example           # Modelo de variáveis de ambiente ✓
+├── ARCHITECTURE.md        # Guia completo de arquitetura do sistema ✓
 │
-├── api/v1/endpoints/      # API route handlers (to be implemented)
-├── services/              # Business logic layer (to be implemented)
-├── ml/models/             # AI model files (to be trained)
-├── migrations/            # Alembic database migrations
-└── tests/                 # Pytest test suite
+├── api/v1/endpoints/      # Handlers das rotas da API (a implementar)
+├── services/              # Camada de lógica de negócio (a implementar)
+├── ml/models/             # Arquivos do modelo de IA (a treinar)
+├── migrations/            # Migrações do banco com Alembic
+└── tests/                 # Suite de testes com Pytest
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Início Rápido
 
-### 1. Prerequisites
+### 1. Pré-requisitos
 
 - Python 3.11+
-- MariaDB 10.6+ or MySQL 8.0+
-- ESP32-CAM hardware (for production)
+- MariaDB 10.6+ ou MySQL 8.0+
+- Hardware ESP32-CAM (para produção)
 
-### 2. Installation
+### 2. Instalação
 
 ```bash
-# Clone the repository
+# Clonar o repositório
 cd Eco_Mais
 
-# Create virtual environment
+# Criar ambiente virtual
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  # No Windows: venv\Scripts\activate
 
-# Install dependencies
+# Instalar dependências
 pip install -r requirements.txt
 
-# Copy environment variables
+# Copiar variáveis de ambiente
 cp .env.example .env
 
-# Edit .env with your database credentials
+# Editar o .env com as credenciais do banco
 nano .env
 ```
 
-### 3. Database Setup
+### 3. Configuração do Banco de Dados
 
 ```bash
-# Create MariaDB database
+# Criar o banco MariaDB
 mysql -u root -p
 CREATE DATABASE eco_mais_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'eco_mais_user'@'localhost' IDENTIFIED BY 'your_secure_password';
@@ -85,16 +85,16 @@ GRANT ALL PRIVILEGES ON eco_mais_db.* TO 'eco_mais_user'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 
-# Initialize database tables
+# Inicializar as tabelas do banco
 python database.py
 
-# Or use Alembic for migrations (recommended for production)
+# Ou usar Alembic para migrações (recomendado para produção)
 alembic init migrations
 alembic revision --autogenerate -m "Initial schema"
 alembic upgrade head
 ```
 
-### 4. Seed Material Data
+### 4. Inserir Dados Iniciais de Materiais
 
 ```python
 # Create scripts/seed_materials.py
@@ -116,32 +116,32 @@ materials = [
 
 db.add_all(materials)
 db.commit()
-print("✓ Seeded materials successfully!")
+print("✓ Materiais inseridos com sucesso!")
 ```
 
-### 5. Run Development Server
+### 5. Executar o Servidor de Desenvolvimento
 
 ```bash
-# Start FastAPI server
+# Iniciar o servidor FastAPI
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
-# Access API documentation
+# Acessar a documentação da API
 # http://localhost:8000/docs (Swagger UI)
 # http://localhost:8000/redoc (ReDoc)
 
-# Test health check
+# Testar a verificação de saúde
 curl http://localhost:8000/health
 ```
 
-**Note:** For MVP, background tasks run using FastAPI's native BackgroundTasks. For production scale, consider migrating to Celery + Redis.
+**Observação:** Para o MVP, as tarefas em segundo plano rodam usando o BackgroundTasks nativo do FastAPI. Para produção em escala, considere migrar para Celery + Redis.
 
 ---
 
-## 🔐 Security Architecture
+## 🔐 Arquitetura de Segurança
 
-### ESP32 ↔ Backend Handshake
+### Handshake ESP32 ↔ Backend
 
-The ESP32 authenticates using HMAC-SHA256 signatures:
+O ESP32 se autentica usando assinaturas HMAC-SHA256:
 
 ```cpp
 // ESP32 Code (C++)
@@ -155,81 +155,83 @@ httpClient.addHeader("X-Signature", signature);
 httpClient.POST("/v1/bin/upload", jsonPayload);
 ```
 
-**Backend verifies**:
+**O backend verifica**:
 
-1. Timestamp within ±5 minutes (prevents replay attacks)
-2. Bin exists and is active
-3. HMAC signature matches expected value
-4. All requests logged in `audit_logs` table
+1. Timestamp dentro de ±5 minutos (evita ataques de replay)
+2. O bin existe e está ativo
+3. A assinatura HMAC corresponde ao valor esperado
+4. Todas as requisições são registradas na tabela `audit_logs`
 
-See `ARCHITECTURE.md` for detailed security flows.
+Veja `ARCHITECTURE.md` para os fluxos de segurança detalhados.
 
 ---
 
-## 🛡️ Triple Validation Flow
+## 🛡️ Fluxo de Validação Tripla
+
+![Fluxograma](docs/diagramas/Untitled%20Diagram.drawio%20copy.svg)
 
 ```
-User Scans QR → Session Created (3min timeout)
+Usuário Escaneia QR → Sessão Criada (timeout de 3 min)
                      ↓
-User Deposits Item → Weight Measured (Load Cell)
+Usuário Deposita Item → Peso Medido (Célula de Carga)
                      ↓
-ESP32-CAM Captures → Upload to /v1/bin/upload (200 OK returned immediately)
+ESP32-CAM Captura → Envio para /v1/bin/upload (200 OK retornado imediatamente)
                      ↓
-Background AI Processing → Classification (YOLOv8)
+Processamento por IA em Segundo Plano → Classificação (YOLOv8)
                      ↓
-All 3 Valid? → Points Awarded → User Notified
+Todos os 3 Válidos? → Pontos Atribuídos → Usuário Notificado
 ```
 
-**Background Processing (MVP):**
+**Processamento em Segundo Plano (MVP):**
 
-- AI classification runs in FastAPI BackgroundTasks
-- ESP32 receives immediate 200 OK response (no waiting)
-- Points awarded asynchronously after AI completes
-- For production scale: migrate to Celery + Redis
+- A classificação por IA roda em FastAPI BackgroundTasks
+- O ESP32 recebe resposta 200 OK imediata (sem espera)
+- Os pontos são atribuídos de forma assíncrona após a conclusão da IA
+- Para produção em escala: migrar para Celery + Redis
 
-**Anti-Fraud Mechanisms**:
+**Mecanismos Anti-Fraude**:
 
-- Rate limiting (10 discards/session, 100/day)
-- Duplicate image detection (perceptual hashing) _[MVP: Placeholder]_
-- Weight anomaly detection (ML outlier detection) _[MVP: Placeholder]_
-- Session timeout enforcement (checked on each request)
-- Manual review queue for low-confidence classifications _[Future]_
-
----
-
-## 📊 Database Schema
-
-### Key Tables
-
-**Users**: Account management, points tracking
-**SmartBins**: Hardware registry, API keys, location
-**ActiveSessions**: 3-minute recycling windows
-**Materials**: Recyclable material catalog, points rates
-**Discards**: Triple validation records, fraud flags
-**Rewards**: Points transaction ledger
-**AuditLog**: Security event logging
-
-See `models.py` for complete schema with relationships.
+- Limite de requisições (10 descartes/sessão, 100/dia)
+- Detecção de imagem duplicada (hash perceptual) _[MVP: Placeholder]_
+- Detecção de anomalia de peso (detecção de outliers por ML) _[MVP: Placeholder]_
+- Enforço do timeout da sessão (checado a cada requisição)
+- Fila de revisão manual para classificações com baixa confiança _[Futuro]_
 
 ---
 
-## 🤖 AI Model Integration
+## 📊 Esquema do Banco de Dados
 
-### Training Your Model
+### Tabelas Principais
+
+**Users**: gerenciamento de contas, rastreamento de pontos
+**SmartBins**: registro do hardware, chaves de API, localização
+**ActiveSessions**: janelas de reciclagem de 3 minutos
+**Materials**: catálogo de materiais recicláveis, taxa de pontos
+**Discards**: registros de validação tripla, flags de fraude
+**Rewards**: ledger de transações de pontos
+**AuditLog**: registro de eventos de segurança
+
+Veja `models.py` para o esquema completo com relacionamentos.
+
+---
+
+## 🤖 Integração do Modelo de IA
+
+### Treinando seu Modelo
 
 ```python
-# 1. Collect labeled dataset
-#    - 10,000+ images per material category
-#    - Varied lighting, angles, backgrounds
-#    - Annotate in YOLO format (bounding boxes)
+# 1. Coletar dataset rotulado
+#    - 10.000+ imagens por categoria de material
+#    - Iluminação, ângulos e fundos variados
+#    - Anotar no formato YOLO (bounding boxes)
 
-# 2. Train YOLOv8 classification model
+# 2. Treinar modelo de classificação YOLOv8
 from ultralytics import YOLO
 
-# Load pretrained model
-model = YOLO('yolov8n-cls.pt')  # Nano model for speed
+# Carregar modelo pré-treinado
+model = YOLO('yolov8n-cls.pt')  # Modelo nano para velocidade
 
-# Train on your dataset
+# Treinar no seu dataset
 results = model.train(
     data='path/to/dataset',
     epochs=100,
@@ -237,14 +239,14 @@ results = model.train(
     batch=16
 )
 
-# Save model
+# Salvar modelo
 model.save('ml/models/recyclable_classifier.pt')
 
-# 3. Export for deployment (optional)
-model.export(format='onnx')  # For production optimization
+# 3. Exportar para deploy (opcional)
+model.export(format='onnx')  # Para otimização em produção
 ```
 
-### Expected Material Classes
+### Classes de Materiais Esperadas
 
 ```python
 CLASSES = [
@@ -258,130 +260,130 @@ CLASSES = [
 
 ---
 
-## 🧪 Testing
+## 🧪 Testes
 
 ```bash
-# Run all tests
+# Executar todos os testes
 pytest
 
-# Run with coverage
+# Executar com cobertura
 pytest --cov=. --cov-report=html
 
-# Test specific modules
+# Testar módulos específicos
 pytest tests/test_validation.py -v
 pytest tests/test_security.py -v
 ```
 
 ---
 
-## 📱 API Endpoints
+## 📱 Endpoints da API
 
-### Implemented Endpoints ✅
+### Endpoints Implementados ✅
 
-- `GET /health` - System health check
-- `POST /v1/bin/upload` - ⭐ **ESP32 Triple Validation Endpoint**
-- `POST /v1/bin/heartbeat` - Bin status reporting
+- `GET /health` - Verificação de saúde do sistema
+- `POST /v1/bin/upload` - ⭐ **Endpoint de Validação Tripla para ESP32**
+- `POST /v1/bin/heartbeat` - Reporte de status do bin
 
-### To Be Implemented
+### A Implementar
 
-#### Public Endpoints
+#### Endpoints Públicos
 
-- `POST /v1/auth/register` - User registration
-- `POST /v1/auth/login` - JWT authentication
-- `GET /v1/materials` - List recyclable materials
+- `POST /v1/auth/register` - Registro de usuário
+- `POST /v1/auth/login` - Autenticação JWT
+- `GET /v1/materials` - Lista de materiais recicláveis
 
-#### User Endpoints (JWT required)
+#### Endpoints do Usuário (JWT obrigatório)
 
-- `POST /v1/sessions/start` - Start recycling session (QR scan)
-- `GET /v1/users/me` - Get user profile and points
-- `GET /v1/discards/history` - User's recycling history
+- `POST /v1/sessions/start` - Iniciar sessão de reciclagem (leitura do QR)
+- `GET /v1/users/me` - Obter perfil do usuário e pontos
+- `GET /v1/discards/history` - Histórico de reciclagem do usuário
 
-#### Admin Endpoints
+#### Endpoints de Admin
 
-- `GET /v1/admin/bins` - Manage smart bins
-- `GET /v1/admin/flagged-discards` - Review suspicious activity
-
----
-
-## 🎯 Next Steps
-
-### Phase 1: Backend Development
-
-- [x] ✅ Implement `/v1/bin/upload` endpoint with BackgroundTasks
-- [x] ✅ Implement triple validation service
-- [ ] Build session management endpoints (`/v1/sessions/start`)
-- [ ] Create user authentication (JWT)
-- [ ] Implement user endpoints (`/v1/users/me`, history)
-
-### Phase 2: ESP32 Firmware
-
-- [ ] Implement HMAC signature generation
-- [ ] Integrate camera capture
-- [ ] Connect load cell weight sensor
-- [ ] Add retry logic for failed uploads
-
-### Phase 3: AI Model
-
-- [ ] Collect training dataset (10k+ images)
-- [ ] Train YOLOv8 classifier (yolov8n-cls or yolov8s-cls)
-- [ ] Achieve >85% accuracy on validation set
-- [ ] Deploy model on backend (FastAPI serves inference)
-
-### Phase 4: Mobile App
-
-- [ ] QR code scanner (session start)
-- [ ] Real-time points display
-- [ ] Discard history and stats
-- [ ] Leaderboard
-
-### Phase 5: Admin Dashboard
-
-- [ ] Bin monitoring dashboard
-- [ ] Fraud detection review queue
-- [ ] Analytics (recycling patterns, user engagement)
+- `GET /v1/admin/bins` - Gerenciar smart bins
+- `GET /v1/admin/flagged-discards` - Revisar atividades suspeitas
 
 ---
 
-## 📖 Documentation
+## 🎯 Próximos Passos
 
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete system design, security flows, validation logic
-- **[models.py](models.py)** - SQLAlchemy database models with relationships
-- **[config.py](config.py)** - Environment configuration reference
+### Fase 1: Desenvolvimento do Backend
+
+- [x] ✅ Implementar endpoint `/v1/bin/upload` com BackgroundTasks
+- [x] ✅ Implementar serviço de validação tripla
+- [ ] Criar endpoints de gerenciamento de sessão (`/v1/sessions/start`)
+- [ ] Criar autenticação de usuário (JWT)
+- [ ] Implementar endpoints do usuário (`/v1/users/me`, histórico)
+
+### Fase 2: Firmware do ESP32
+
+- [ ] Implementar geração de assinatura HMAC
+- [ ] Integrar captura da câmera
+- [ ] Conectar o sensor de peso da célula de carga
+- [ ] Adicionar lógica de retry para uploads com falha
+
+### Fase 3: Modelo de IA
+
+- [ ] Coletar dataset de treinamento (10k+ imagens)
+- [ ] Treinar classificador YOLOv8 (yolov8n-cls ou yolov8s-cls)
+- [ ] Atingir >85% de acurácia no conjunto de validação
+- [ ] Implantar o modelo no backend (FastAPI servindo inferência)
+
+### Fase 4: App Mobile
+
+- [ ] Scanner de QR code (início da sessão)
+- [ ] Exibição de pontos em tempo real
+- [ ] Histórico e estatísticas de descarte
+- [ ] Ranking
+
+### Fase 5: Painel Administrativo
+
+- [ ] Dashboard de monitoramento dos bins
+- [ ] Fila de revisão de detecção de fraude
+- [ ] Analytics (padrões de reciclagem, engajamento do usuário)
 
 ---
 
-## 🤝 Contributing
+## 📖 Documentação
 
-This is a TCC (undergraduate thesis) project. Contributions welcome!
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/new-feature`)
-3. Commit changes (`git commit -m 'Add new feature'`)
-4. Push to branch (`git push origin feature/new-feature`)
-5. Open Pull Request
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Design completo do sistema, fluxos de segurança, lógica de validação
+- **[models.py](models.py)** - Modelos SQLAlchemy do banco com relacionamentos
+- **[config.py](config.py)** - Referência de configuração de ambiente
 
 ---
 
-## 📄 License
+## 🤝 Contribuindo
 
-MIT License - See LICENSE file for details
+Este é um projeto de TCC (trabalho de conclusão de curso). Contribuições são bem-vindas!
+
+1. Faça um fork do repositório
+2. Crie uma branch de feature (`git checkout -b feature/new-feature`)
+3. Faça commit das mudanças (`git commit -m 'Add new feature'`)
+4. Envie para a branch (`git push origin feature/new-feature`)
+5. Abra um Pull Request
 
 ---
 
-## 👤 Author
+## 📄 Licença
 
-**Paulo Eduardo** - Green-Tech Startup (TCC Project)
+Licença MIT - veja o arquivo LICENSE para detalhes.
 
 ---
 
-## 🙏 Acknowledgments
+## 👤 Autor
+
+**Paulo Eduardo** - Green-Tech Startup (Projeto TCC)
+
+---
+
+## 🙏 Agradecimentos
 
 - FastAPI framework
-- SQLAlchemy ORM
+- ORM SQLAlchemy
 - Ultralytics YOLOv8
-- OpenCV community
-- ESP32 open-source ecosystem
+- Comunidade OpenCV
+- Ecossistema open-source do ESP32
 
 ---
 
-**Built with 💚 for a sustainable future**
+**Feito com 💚 por um futuro sustentável**

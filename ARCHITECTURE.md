@@ -5,17 +5,20 @@
 ### Core Tables
 
 #### **Users**
+
 - Manages user accounts and accumulated rewards
 - Tracks total points and discard count for gamification
 - Email verification and account status for security
 
 #### **SmartBins**
+
 - Represents physical ESP32-CAM equipped bins
 - Stores hardware API key for authentication
 - Tracks location, capacity, and operational status
 - Monitors firmware version and last communication
 
 #### **ActiveSessions** (3-minute timeout)
+
 - **Critical for triple validation**
 - Links user → bin → current recycling session
 - Auto-expires after 3 minutes to prevent abuse
@@ -23,23 +26,27 @@
 - Uses indexed `expires_at` for efficient cleanup queries
 
 #### **Materials**
+
 - Master data for recyclable material types
 - Defines points-per-kg reward rates
 - Stores AI classification mappings and confidence thresholds
 - Enables dynamic material catalog updates
 
 #### **Discards**
+
 - **Triple validation checkpoint** (see section 4)
 - Records weight, image, and AI classification
 - Prevents point injection via fraud detection flags
 - Immutable audit trail of all recycling events
 
 #### **Rewards**
+
 - Transaction ledger for points (earn/redeem)
 - Links to discards for traceability
 - Enables point redemption and bonus campaigns
 
 #### **AuditLog**
+
 - Security logging for all ESP32 requests
 - Stores HMAC signatures for forensic analysis
 - Tracks IP addresses and request patterns
@@ -88,6 +95,7 @@
 ### Implementation Details
 
 **ESP32 Side (C/C++):**
+
 ```cpp
 // Pseudo-code for ESP32
 String timestamp = String(now());
@@ -101,6 +109,7 @@ httpClient.POST("/v1/bin/upload", jsonBody);
 ```
 
 **Backend Side (Python/FastAPI):**
+
 ```python
 import hmac
 import hashlib
@@ -236,6 +245,7 @@ eco_mais/
 ## 4. Triple Validation Logic for `/v1/bin/upload`
 
 ### Endpoint Purpose
+
 Prevent point injection fraud by requiring **three independent validations** before awarding points.
 
 ### Validation Flow
@@ -366,25 +376,30 @@ Prevent point injection fraud by requiring **three independent validations** bef
 ## 5. Critical Implementation Notes
 
 ### Database Transactions
+
 - Use `SERIALIZABLE` isolation for points updates to prevent race conditions
 - Atomic `User.total_points` updates with optimistic locking
 
 ### Session Cleanup
+
 - Background Celery task runs every 30 seconds
 - Marks expired sessions as `EXPIRED`
 - Prevents session table bloat
 
 ### Image Storage
+
 - Store images in S3 or local filesystem (not database)
 - Keep `image_path` in database for reference
 - Implement lifecycle policy (delete after 90 days)
 
 ### AI Model Deployment
+
 - Use TensorFlow Lite or ONNX for ESP32-CAM (edge inference)
 - Fallback to backend inference if ESP32 lacks resources
 - Version models to allow A/B testing
 
 ### Monitoring & Alerts
+
 - Track validation failure rates per bin
 - Alert if >20% of requests fail signature validation
 - Monitor session expiry rates (should be <5%)
