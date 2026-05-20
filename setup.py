@@ -19,6 +19,7 @@ from models import (
     ActiveSession, SessionStatus, Discard, Reward, Base
 )
 from sqlalchemy.orm import Session
+from services.auth_service import hash_password
 
 
 def print_header(text: str):
@@ -177,12 +178,12 @@ def create_test_user(db: Session):
         print("⚠ Test user already exists. Skipping...")
         return existing
 
-    # Simple password hash (in production, use passlib/bcrypt)
-    password_hash = hashlib.sha256("password123".encode()).hexdigest()
+    password_hash = hash_password("password123")
 
     user = User(
         email="test@ecomais.com",
         username="testuser",
+        cpf="39053344705",
         password_hash=password_hash,
         full_name="Test User",
         phone="+5511999999999",

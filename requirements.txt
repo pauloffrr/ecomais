@@ -5,7 +5,7 @@ pydantic>=2.10.0
 pydantic-settings>=2.4.0
 
 # Database
-SQLAlchemy==2.0.25
+SQLAlchemy==2.0.48
 pymysql==1.1.0
 cryptography==42.0.0  # For pymysql secure connections
 alembic==1.13.1      # Database migrations
@@ -14,7 +14,7 @@ alembic==1.13.1      # Database migrations
 python-jose[cryptography]==3.3.0  # JWT tokens
 passlib[bcrypt]==1.7.4            # Password hashing
 python-multipart==0.0.6           # Form data parsing
-bcrypt==4.1.2
+bcrypt==4.0.1
 
 # Image Processing & AI
 Pillow==11.0.0                    # Image manipulation

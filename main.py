@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import get_settings
 from database import check_db_connection
-from api.v1.endpoints import upload
+from api.v1.endpoints import auth, upload, users
 
 # Setup logging
 logging.basicConfig(
@@ -100,6 +100,18 @@ async def root():
 
 
 # Include routers
+app.include_router(
+    auth.router,
+    prefix="/v1/auth",
+    tags=["Authentication"]
+)
+
+app.include_router(
+    users.router,
+    prefix="/v1/users",
+    tags=["Users"]
+)
+
 app.include_router(
     upload.router,
     prefix="/v1/bin",

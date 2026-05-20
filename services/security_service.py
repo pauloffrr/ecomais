@@ -9,6 +9,7 @@ import logging
 from datetime import datetime
 from typing import Optional, Tuple
 
+from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from models import SmartBin, BinStatus, AuditLog
@@ -16,6 +17,17 @@ from config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+pwd_context = CryptContext(schemes=["bcrypt", "pbkdf2_sha256"], deprecated="auto")
+
+
+def hash_password(password: str) -> str:
+    """Hash a plain password using bcrypt."""
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, password_hash: str) -> bool:
+    """Verify a plain password against a stored hash."""
+    return pwd_context.verify(plain_password, password_hash)
 
 
 def verify_esp32_signature(
