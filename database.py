@@ -3,7 +3,7 @@ Database configuration and session management for Smart Recycling Bin
 Uses SQLAlchemy with MariaDB (MySQL driver)
 """
 
-from sqlalchemy import create_engine, event, text
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import QueuePool
 from typing import Generator
@@ -115,10 +115,26 @@ def init_db():
     try:
         # Create all tables defined in models.py
         Base.metadata.create_all(bind=engine)
+        _ensure_user_admin_column()
         logger.info("Database tables created successfully")
     except Exception as e:
         logger.error(f"Failed to create database tables: {e}")
         raise
+
+
+def _ensure_user_admin_column():
+    """Add users.is_admin if the database was created before the admin flag existed."""
+    inspector = inspect(engine)
+    if "users" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("users")}
+    if "is_admin" in columns:
+        return
+
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE"))
+    logger.info("Added missing users.is_admin column")
 
 
 def check_db_connection() -> bool:

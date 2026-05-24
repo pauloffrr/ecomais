@@ -2,6 +2,7 @@
 User CRUD endpoints.
 """
 
+import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -12,7 +13,7 @@ from api.dependencies import get_current_active_user
 from api.v1.schemas.auth import UserResponse
 from api.v1.schemas.users import UserListResponse, UserUpdate
 from database import get_db
-from models import User
+from models import AuditLog, User
 from services.auth_service import hash_password
 
 logger = logging.getLogger(__name__)
@@ -37,7 +38,7 @@ def get_user(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.id != user_id:
+    if current_user.id != user_id and not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to access this user")
 
     user = db.query(User).filter(User.id == user_id).first()
@@ -53,7 +54,7 @@ def update_user(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.id != user_id:
+    if current_user.id != user_id and not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to modify this user")
 
     user = db.query(User).filter(User.id == user_id).first()
@@ -96,6 +97,15 @@ def update_user(
         logger.warning("User update failed due to a unique constraint violation")
         raise HTTPException(status_code=400, detail="Unable to update user because a unique field already exists")
 
+    audit_log = AuditLog(
+        event_type="user_updated",
+        entity_type="user",
+        entity_id=user.id,
+        details=json.dumps({"action_by_user_id": current_user.id, "action_by_email": current_user.email}),
+    )
+    db.add(audit_log)
+    db.commit()
+
     return UserResponse.model_validate(user)
 
 
@@ -105,7 +115,7 @@ def delete_user(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.id != user_id:
+    if current_user.id != user_id and not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to delete this user")
 
     user = db.query(User).filter(User.id == user_id).first()
@@ -115,5 +125,13 @@ def delete_user(
     # Soft delete: desativa o usuário preservando o histórico de pontos e reciclagens
     user.is_active = False
     user.email = f"deleted_{user.id}_{user.email}" # Opcional: Libera o email para um novo cadastro futuro
+
+    audit_log = AuditLog(
+        event_type="user_deleted",
+        entity_type="user",
+        entity_id=user.id,
+        details=json.dumps({"action_by_user_id": current_user.id, "action_by_email": current_user.email}),
+    )
+    db.add(audit_log)
     db.commit()
     return None

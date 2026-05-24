@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import get_settings
 from database import check_db_connection
-from api.v1.endpoints import auth, upload, users
+from api.v1.endpoints import admin, auth, discards, materials, rewards, sessions, upload, users
 
 # Setup logging
 logging.basicConfig(
@@ -110,6 +110,36 @@ app.include_router(
     users.router,
     prefix="/v1/users",
     tags=["Users"]
+)
+
+app.include_router(
+    materials.router,
+    prefix="/v1/materials",
+    tags=["Materials"]
+)
+
+app.include_router(
+    sessions.router,
+    prefix="/v1/sessions",
+    tags=["Sessions"]
+)
+
+app.include_router(
+    discards.router,
+    prefix="/v1/discards",
+    tags=["Discards"]
+)
+
+app.include_router(
+    rewards.router,
+    prefix="/v1/rewards",
+    tags=["Gamification & Rewards"]
+)
+
+app.include_router(
+    admin.router,
+    prefix="/v1/admin",
+    tags=["Admin Panel"]
 )
 
 app.include_router(

@@ -50,7 +50,7 @@ def initialize_database():
     print_header("Initializing Database Tables")
 
     try:
-        Base.metadata.create_all(bind=engine)
+        init_db()
         print("✓ Database tables created successfully")
         return True
     except Exception as e:
