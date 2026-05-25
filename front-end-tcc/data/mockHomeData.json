@@ -1,0 +1,73 @@
+{
+  "user": {
+    "name": "Ricardo",
+    "avatarInitials": "R"
+  },
+  "welcome": {
+    "title": "Olá, Ricardo 👋",
+    "subtitle": "Pronto para salvar o planeta hoje?"
+  },
+  "impact": {
+    "co2Saved": {
+      "label": "CO2 SALVO",
+      "value": "12.4 kg"
+    },
+    "stats": [
+      {
+        "id": "recycled",
+        "icon": "recycle",
+        "label": "TOTAL RECICLADO",
+        "value": "142 itens"
+      },
+      {
+        "id": "points",
+        "icon": "medal",
+        "label": "PONTOS ACUMULADOS",
+        "value": "2.850"
+      }
+    ]
+  },
+  "scanner": {
+    "label": "Escanear máquina"
+  },
+  "environment": {
+    "title": "Impacto Ambiental",
+    "level": "Você está no Nível 4",
+    "treesTotal": 5,
+    "treesCompleted": 4,
+    "progressLabel": "PRÓXIMA ÁRVORE",
+    "progress": 75,
+    "hint": "Recicle mais 15 garrafas para plantar uma nova árvore!"
+  },
+  "tip": {
+    "title": "Dicas de hoje",
+    "text": "Lave as embalagens antes de descartar para evitar contaminação."
+  },
+  "tabs": [
+    {
+      "key": "home",
+      "label": "Home",
+      "icon": "home"
+    },
+    {
+      "key": "scanner",
+      "label": "Scanner",
+      "icon": "scan"
+    },
+    {
+      "key": "history",
+      "label": "Estatísticas",
+      "icon": "bar-chart"
+    },
+    {
+      "key": "rewards",
+      "label": "Recompensas",
+      "icon": "gift"
+    },
+    {
+      "key": "profile",
+      "label": "Perfil",
+      "icon": "user"
+    }
+  ]
+}

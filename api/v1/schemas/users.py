@@ -7,7 +7,13 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-from api.v1.schemas.auth import UserResponse
+from api.v1.schemas.auth import UserCreate, UserResponse
+
+
+class UserAdminCreate(UserCreate):
+    is_active: bool = True
+    is_verified: bool = False
+    is_admin: bool = False
 
 
 def _normalize_digits(value: str) -> str:
@@ -34,11 +40,12 @@ def _is_valid_cpf(cpf_digits: str) -> bool:
 class UserUpdate(BaseModel):
     full_name: Optional[str] = Field(default=None, min_length=3, max_length=255)
     email: Optional[EmailStr] = None
-    cpf: Optional[str] = Field(default=None, description="CPF com 11 dígitos, com ou sem pontuação")
-    phone: Optional[str] = Field(default=None, description="Telefone válido")
-    password: Optional[str] = Field(default=None, min_length=8, description="Senha forte com letras e números")
+    cpf: Optional[str] = Field(default=None, description="CPF com 11 digitos, com ou sem pontuacao")
+    phone: Optional[str] = Field(default=None, description="Telefone valido")
+    password: Optional[str] = Field(default=None, min_length=8, description="Senha forte com letras e numeros")
     is_active: Optional[bool] = None
     is_verified: Optional[bool] = None
+    is_admin: Optional[bool] = None
 
     model_config = ConfigDict(str_strip_whitespace=True)
 

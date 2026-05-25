@@ -3,7 +3,6 @@ Authentication endpoints.
 """
 
 import logging
-import re
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -15,27 +14,12 @@ from sqlalchemy.orm import Session
 from api.v1.schemas.auth import Token, UserCreate, UserResponse
 from database import get_db
 from models import User
-from services.auth_service import create_access_token, hash_password, verify_password
+from services.auth_service import create_access_token, generate_username, hash_password, verify_password
 from config import get_settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 settings = get_settings()
-
-
-def _generate_username(email: str, db: Session) -> str:
-    base_username = email.split("@", 1)[0].lower()
-    base_username = re.sub(r"[^a-z0-9_]+", "_", base_username)
-    base_username = re.sub(r"_+", "_", base_username).strip("_") or "user"
-
-    candidate = base_username
-    suffix = 1
-
-    while db.query(User.id).filter(User.username == candidate).first() is not None:
-        candidate = f"{base_username}{suffix}"
-        suffix += 1
-
-    return candidate
 
 
 def _authenticate_user(db: Session, login_identifier: str, password: str) -> User | None:
@@ -56,13 +40,13 @@ def register_user(payload: UserCreate, db: Session = Depends(get_db)):
 
     existing_user = db.query(User).filter(User.email == email).first()
     if existing_user:
-        raise HTTPException(status_code=400, detail="A user with this email already exists")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A user with this email already exists")
 
     existing_cpf = db.query(User).filter(User.cpf == payload.cpf).first()
     if existing_cpf:
-        raise HTTPException(status_code=400, detail="A user with this CPF already exists")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A user with this CPF already exists")
 
-    username = _generate_username(email, db)
+    username = generate_username(email, db)
     password_hash = hash_password(payload.password)
 
     user = User(
@@ -82,7 +66,7 @@ def register_user(payload: UserCreate, db: Session = Depends(get_db)):
         db.rollback()
         logger.warning("Registration failed due to a unique constraint violation")
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Unable to register user because the email, CPF, or username already exists",
         )
 

@@ -32,9 +32,9 @@ def _is_valid_cpf(cpf_digits: str) -> bool:
 class UserCreate(BaseModel):
     full_name: str = Field(..., min_length=3, max_length=255)
     email: EmailStr
-    cpf: str = Field(..., description="CPF com 11 dígitos, com ou sem pontuação")
-    phone: str = Field(..., description="Telefone válido")
-    password: str = Field(..., min_length=8, description="Senha forte com letras e números")
+    cpf: str = Field(..., description="CPF com 11 digitos, com ou sem pontuacao")
+    phone: str = Field(..., description="Telefone valido")
+    password: str = Field(..., min_length=8, description="Senha forte com letras e numeros")
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -85,6 +85,7 @@ class UserResponse(BaseModel):
     total_discards: int
     is_active: bool
     is_verified: bool
+    is_admin: bool
     created_at: datetime
     updated_at: datetime | None = None
 

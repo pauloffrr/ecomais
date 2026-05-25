@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Eco+",
+    "slug": "eco-tech",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "ecotech",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ecotech.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F4FBF5"
+      },
+      "package": "com.ecotech.app"
+    },
+    "extra": {
+      "googleAuth": {
+        "expoClientId": "COLOQUE_SEU_EXPO_CLIENT_ID.apps.googleusercontent.com",
+        "iosClientId": "COLOQUE_SEU_IOS_CLIENT_ID.apps.googleusercontent.com",
+        "androidClientId": "COLOQUE_SEU_ANDROID_CLIENT_ID.apps.googleusercontent.com",
+        "webClientId": "COLOQUE_SEU_WEB_CLIENT_ID.apps.googleusercontent.com"
+      }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permita que o Eco+ use a câmera para escanear QR Codes das máquinas de reciclagem."
+        }
+      ]
+    ]
+  }
+}
