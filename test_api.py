@@ -9,12 +9,16 @@ import time
 import hmac
 import hashlib
 import json
+import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configuration
 BASE_URL = "http://localhost:8000"
 BIN_CODE = "BIN_TEST_001"
-HARDWARE_API_KEY = "9b092b8f99cb0e11ff172f729387cdef6c5f02baf643aec311e9c0f123160388"
+HARDWARE_API_KEY = os.getenv("TEST_HARDWARE_API_KEY", "YOUR_API_KEY_HERE")
 
 
 def generate_hmac_signature(bin_code: str, timestamp: str, body_str: str, api_key: str) -> str:
