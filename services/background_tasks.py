@@ -45,6 +45,10 @@ def save_image_to_disk(image_base64: str, discard_id: int) -> str:
         image_data = base64.b64decode(image_base64)
         image = Image.open(io.BytesIO(image_data))
 
+        # Converte PNG com transparência (RGBA) para RGB, pois JPEG não suporta canal Alpha
+        if image.mode in ("RGBA", "P"):
+            image = image.convert("RGB")
+
         # Generate filename with timestamp
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         filename = f"discard_{discard_id}_{timestamp}.jpg"

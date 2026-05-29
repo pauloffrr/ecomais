@@ -6,7 +6,7 @@ Handles HMAC signature verification and authentication
 import hmac
 import hashlib
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Tuple
 
 from passlib.context import CryptContext
@@ -65,13 +65,13 @@ def verify_esp32_signature(
     try:
         # Step 1: Validate timestamp (prevent replay attacks)
         try:
-            request_time = datetime.fromtimestamp(int(timestamp))
+            request_time = datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
         except (ValueError, OverflowError):
             logger.warning(f"Invalid timestamp format: {timestamp}")
             log_audit_event(db, "invalid_timestamp", bin_code, request_ip, signature)
             return False, None, "Invalid timestamp format"
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         time_diff = abs((now - request_time).total_seconds())
 
         if time_diff > settings.SIGNATURE_TIMESTAMP_TOLERANCE_SECONDS:
@@ -117,7 +117,7 @@ def verify_esp32_signature(
         log_audit_event(db, "signature_valid", bin_code, request_ip, signature, bin.id)
 
         # Update bin's last_seen_at timestamp
-        bin.last_seen_at = datetime.utcnow()
+        bin.last_seen_at = datetime.now(timezone.utc)
         db.commit()
 
         return True, bin, ""

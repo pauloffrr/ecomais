@@ -156,6 +156,30 @@ class Settings(BaseSettings):
     CLEANUP_EXPIRED_SESSIONS_INTERVAL: int = 60  # seconds (check on each relevant request)
     CLEANUP_OLD_IMAGES_INTERVAL: int = 86400     # 24 hours
 
+    # ==================== REDIS / CELERY ====================
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
+    REDIS_PASSWORD: Optional[str] = None
+    CELERY_TASK_ALWAYS_EAGER: bool = False
+    CELERY_TASK_EAGER_PROPAGATES: bool = True
+
+    @property
+    def redis_url(self) -> str:
+        """Build Redis connection URL."""
+        auth = f":{self.REDIS_PASSWORD}@" if self.REDIS_PASSWORD else ""
+        return f"redis://{auth}{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+
+    @property
+    def celery_broker_url(self) -> str:
+        """Celery broker URL backed by Redis."""
+        return self.redis_url
+
+    @property
+    def celery_result_backend(self) -> str:
+        """Celery result backend backed by Redis."""
+        return self.redis_url
+
     # ==================== CACHING (Future) ====================
     # For MVP: No caching needed
     # Future: Add Redis for session caching and leaderboard

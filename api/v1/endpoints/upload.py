@@ -33,6 +33,11 @@ from services.background_tasks import (
 )
 from config import get_settings
 
+try:
+    from services.celery_tasks import process_image_with_ai_task
+except ImportError:
+    process_image_with_ai_task = None
+
 logger = logging.getLogger(__name__)
 settings = get_settings()
 router = APIRouter()
@@ -216,12 +221,21 @@ async def upload_discard(
 
         # ===== STEP 7: SCHEDULE AI PROCESSING IN BACKGROUND =====
         # This runs AFTER the response is sent to ESP32
-        background_tasks.add_task(
-            process_image_with_ai,
-            discard_id=temp_discard.id,
-            image_path=image_path,
-            db=db
-        )
+        celery_success = False
+        if process_image_with_ai_task is not None:
+            try:
+                process_image_with_ai_task.delay(temp_discard.id, image_path)
+                celery_success = True
+            except Exception as e:
+                logger.warning(f"Redis/Celery offline. Falling back to BackgroundTasks. Error: {e}")
+                
+        if not celery_success:
+            background_tasks.add_task(
+                process_image_with_ai,
+                discard_id=temp_discard.id,
+                image_path=image_path,
+                db=db
+            )
 
         # Update session validation checkpoints
         background_tasks.add_task(

@@ -14,15 +14,12 @@ from datetime import datetime
 # Configuration
 BASE_URL = "http://localhost:8000"
 BIN_CODE = "BIN_TEST_001"
-HARDWARE_API_KEY = "YOUR_API_KEY_HERE"  # Get from setup.py output
-
-# Test session token (from database after running setup.py)
-SESSION_TOKEN = "test_session_token_here"
+HARDWARE_API_KEY = "9b092b8f99cb0e11ff172f729387cdef6c5f02baf643aec311e9c0f123160388"
 
 
-def generate_hmac_signature(bin_code: str, timestamp: str, body: dict, api_key: str) -> str:
-    """Generate HMAC-SHA256 signature"""
-    message = f"{bin_code}{timestamp}{json.dumps(body)}"
+def generate_hmac_signature(bin_code: str, timestamp: str, body_str: str, api_key: str) -> str:
+    """Generate HMAC-SHA256 signature over the exact raw JSON body."""
+    message = f"{bin_code}{timestamp}{body_str}"
     signature = hmac.new(
         api_key.encode('utf-8'),
         message.encode('utf-8'),
@@ -47,6 +44,37 @@ def create_mock_image() -> str:
     return base64.b64encode(png_bytes).decode('utf-8')
 
 
+def create_real_session() -> str:
+    """Authenticate as test user and create a real active session."""
+    print("\n=== Creating Real User Session ===")
+    
+    # 1. Login with test user (created by setup.py)
+    login_data = {"username": "test@ecomais.com", "password": "password123"}
+    login_resp = requests.post(f"{BASE_URL}/v1/auth/login", data=login_data)
+    
+    if login_resp.status_code != 200:
+        print(f"❌ Login failed: {login_resp.json()}")
+        return ""
+        
+    access_token = login_resp.json()["access_token"]
+    
+    # 2. Start a recycling session
+    headers = {"Authorization": f"Bearer {access_token}"}
+    session_resp = requests.post(
+        f"{BASE_URL}/v1/sessions/start",
+        json={"bin_code": BIN_CODE},
+        headers=headers
+    )
+    
+    if session_resp.status_code != 201:
+        print(f"❌ Session start failed: {session_resp.json()}")
+        return ""
+        
+    session_token = session_resp.json()["session_token"]
+    print(f"✅ Session created! Token starts with: {session_token[:10]}...")
+    return session_token
+
+
 def test_health_check():
     """Test health check endpoint"""
     print("\n=== Testing Health Check ===")
@@ -56,20 +84,23 @@ def test_health_check():
     return response.status_code == 200
 
 
-def test_bin_upload():
+def test_bin_upload(session_token: str):
     """Test /v1/bin/upload endpoint with HMAC signature"""
     print("\n=== Testing /v1/bin/upload ===")
 
     # Prepare request
     timestamp = str(int(time.time()))
     body = {
-        "session_token": SESSION_TOKEN,
+        "session_token": session_token,
         "weight_grams": 245.5,
         "image": create_mock_image()
     }
 
+    # Serialize once and reuse the exact same string for signing and sending.
+    body_str = json.dumps(body, separators=(",", ":"), ensure_ascii=False)
+
     # Generate HMAC signature
-    signature = generate_hmac_signature(BIN_CODE, timestamp, body, HARDWARE_API_KEY)
+    signature = generate_hmac_signature(BIN_CODE, timestamp, body_str, HARDWARE_API_KEY)
 
     # Headers
     headers = {
@@ -87,7 +118,7 @@ def test_bin_upload():
     response = requests.post(
         f"{BASE_URL}/v1/bin/upload",
         headers=headers,
-        json=body
+        data=body_str.encode('utf-8')
     )
 
     print(f"Status: {response.status_code}")
@@ -107,7 +138,9 @@ def test_bin_heartbeat():
         "status": "active"
     }
 
-    signature = generate_hmac_signature(BIN_CODE, timestamp, body, HARDWARE_API_KEY)
+    body_str = json.dumps(body, separators=(",", ":"), ensure_ascii=False)
+
+    signature = generate_hmac_signature(BIN_CODE, timestamp, body_str, HARDWARE_API_KEY)
 
     headers = {
         "X-Bin-ID": BIN_CODE,
@@ -119,7 +152,7 @@ def test_bin_heartbeat():
     response = requests.post(
         f"{BASE_URL}/v1/bin/heartbeat",
         headers=headers,
-        json=body
+        data=body_str.encode('utf-8')
     )
 
     print(f"Status: {response.status_code}")
@@ -156,8 +189,11 @@ def main():
     print("   3. Run this script again")
 
     # Uncomment these when you have valid credentials:
-    # test_bin_heartbeat()
-    # test_bin_upload()
+    test_bin_heartbeat()
+    
+    session_token = create_real_session()
+    if session_token:
+        test_bin_upload(session_token)
 
     print("\n" + "=" * 60)
     print("✅ Basic tests passed!")

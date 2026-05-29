@@ -16,6 +16,10 @@ passlib[bcrypt]==1.7.4            # Password hashing
 python-multipart==0.0.6           # Form data parsing
 bcrypt==4.0.1
 
+# Background Queue
+celery[redis]==5.4.0               # Distributed task queue
+redis==5.0.8                       # Redis client / broker
+
 # Image Processing & AI
 Pillow==11.0.0                    # Image manipulation
 numpy==1.26.3
@@ -28,8 +32,8 @@ boto3==1.34.34                    # AWS S3 for image storage
 # OR for Google Cloud Storage:
 # google-cloud-storage==2.14.0
 
-# Background Tasks (Future: Consider Celery + Redis for production scale)
-# For MVP, using FastAPI BackgroundTasks (no additional dependencies needed)
+# Background Tasks
+# Celery + Redis is used for heavy AI processing tasks; FastAPI BackgroundTasks remains for lightweight housekeeping tasks.
 
 # HTTP & Utilities
 httpx==0.26.0                     # Async HTTP client

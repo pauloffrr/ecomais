@@ -6,6 +6,7 @@ Handles triple validation logic (Session + Weight + AI Vision)
 import logging
 from datetime import datetime
 from typing import Tuple, Optional
+from sqlalchemy import func
 
 from sqlalchemy.orm import Session
 
@@ -149,7 +150,7 @@ def check_rate_limits(
         today = date.today()
         daily_discard_count = db.query(Discard).filter(
             Discard.user_id == user_id,
-            db.func.date(Discard.created_at) == today
+            func.date(Discard.created_at) == today
         ).count()
 
         if daily_discard_count >= settings.MAX_DISCARDS_PER_DAY:
