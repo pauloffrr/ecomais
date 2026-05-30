@@ -11,6 +11,7 @@ import { profileData } from '../mocks/profileData';
 import { api } from '../services/api';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
+import { useAuth } from '../hooks/useAuth';
 
 const historyIcons = {
   plastic: Recycle,
@@ -18,6 +19,7 @@ const historyIcons = {
 };
 
 export default function ProfileScreen({ navigation }) {
+  const { logout } = useAuth();
   const [data, setData] = useState(null);
   const fade = useRef(new Animated.Value(0)).current;
 
@@ -45,11 +47,8 @@ export default function ProfileScreen({ navigation }) {
     else if (key !== 'profile') Alert.alert('Coming soon', 'This area is ready for the next feature.');
   };
 
-  const handleLogout = () => {
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Login' }],
-    });
+  const handleLogout = async () => {
+    await logout();
   };
 
   const content = data ?? profileData;

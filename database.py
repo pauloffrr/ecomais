@@ -115,6 +115,7 @@ def init_db():
     try:
         # Create all tables defined in models.py
         Base.metadata.create_all(bind=engine)
+        _ensure_user_cpf_column()
         _ensure_user_admin_column()
         logger.info("Database tables created successfully")
     except Exception as e:
@@ -135,6 +136,25 @@ def _ensure_user_admin_column():
     with engine.begin() as conn:
         conn.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE"))
     logger.info("Added missing users.is_admin column")
+
+
+def _ensure_user_cpf_column():
+    """Add users.cpf if the database was created before CPF became required."""
+    inspector = inspect(engine)
+    if "users" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("users")}
+    if "cpf" in columns:
+        return
+
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE users ADD COLUMN cpf VARCHAR(11) NULL"))
+        conn.execute(text("UPDATE users SET cpf = LPAD(id, 11, '0') WHERE cpf IS NULL"))
+        conn.execute(text("ALTER TABLE users MODIFY cpf VARCHAR(11) NOT NULL"))
+        conn.execute(text("CREATE UNIQUE INDEX ix_users_cpf ON users (cpf)"))
+
+    logger.info("Added missing users.cpf column")
 
 
 def check_db_connection() -> bool:

@@ -1,10 +1,10 @@
 {
   "expo": {
     "name": "Eco+",
-    "slug": "eco-tech",
+    "slug": "eco+",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "ecotech",
+    "scheme": "eco+",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
       "**/*"
@@ -20,6 +20,7 @@
       "package": "com.ecotech.app"
     },
     "extra": {
+      "apiBaseUrl": "http://192.168.1.5:8001/v1",
       "googleAuth": {
         "expoClientId": "COLOQUE_SEU_EXPO_CLIENT_ID.apps.googleusercontent.com",
         "iosClientId": "COLOQUE_SEU_IOS_CLIENT_ID.apps.googleusercontent.com",
@@ -35,7 +36,8 @@
         {
           "cameraPermission": "Permita que o Eco+ use a câmera para escanear QR Codes das máquinas de reciclagem."
         }
-      ]
+      ],
+      "expo-secure-store"
     ]
   }
 }

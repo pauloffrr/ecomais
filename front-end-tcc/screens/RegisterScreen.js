@@ -9,56 +9,150 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Check, Lock, Mail, Phone, UserRound } from 'lucide-react-native';
+import { Check, Fingerprint, Lock, Mail, Phone, UserRound, X } from 'lucide-react-native';
 import EcoBackground from '../components/EcoBackground';
 import InputField from '../components/InputField';
+import LoadingOverlay from '../components/LoadingOverlay';
 import LogoMark from '../components/LogoMark';
 import PrimaryButton from '../components/PrimaryButton';
 import { colors } from '../theme/colors';
-import { registerMockUser } from '../services/mockAuth';
+import * as authService from '../src/api/authService';
+import { useAuth } from '../src/hooks/useAuth';
 
 const initialForm = {
   name: '',
   email: '',
+  cpf: '',
   phone: '',
   password: '',
   confirmPassword: '',
 };
 
+const onlyDigits = (value) => value.replace(/\D/g, '');
+
+const getPasswordRules = (password) => [
+  {
+    key: 'length',
+    label: 'Minimo de 8 caracteres',
+    valid: password.length >= 8,
+  },
+  {
+    key: 'uppercase',
+    label: 'Uma letra maiuscula',
+    valid: /[A-Z]/.test(password),
+  },
+  {
+    key: 'lowercase',
+    label: 'Uma letra minuscula',
+    valid: /[a-z]/.test(password),
+  },
+  {
+    key: 'number',
+    label: 'Um numero',
+    valid: /\d/.test(password),
+  },
+];
+
+const isValidCpf = (value) => {
+  const cpf = onlyDigits(value);
+
+  if (cpf.length !== 11 || cpf === cpf[0].repeat(11)) return false;
+
+  const calculateDigit = (digits) => {
+    const total = digits
+      .split('')
+      .reduce((sum, digit, index) => sum + Number(digit) * (digits.length + 1 - index), 0);
+    const remainder = (total * 10) % 11;
+    return remainder === 10 ? 0 : remainder;
+  };
+
+  return (
+    calculateDigit(cpf.slice(0, 9)) === Number(cpf[9]) &&
+    calculateDigit(cpf.slice(0, 10)) === Number(cpf[10])
+  );
+};
+
+const getRegisterErrorMessage = (error) => {
+  const detail = error?.response?.data?.detail;
+
+  if (error?.response?.status === 400) {
+    if (String(detail).includes('email')) return 'Ja existe uma conta com este e-mail.';
+    if (String(detail).includes('CPF')) return 'Ja existe uma conta com este CPF.';
+    return 'Nao foi possivel criar a conta com esses dados.';
+  }
+
+  if (error?.response?.status === 422) {
+    return 'Revise os dados informados. CPF, telefone ou senha nao foram aceitos.';
+  }
+
+  if (error?.response?.status >= 500) {
+    return 'Erro interno do servidor.';
+  }
+
+  if (error?.message === 'Network Error' || !error?.response) {
+    return 'Falha na conexao com servidor.';
+  }
+
+  return 'Nao foi possivel criar sua conta.';
+};
+
 export default function RegisterScreen({ navigation }) {
+  const { login } = useAuth();
   const [form, setForm] = useState(initialForm);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState('');
+
+  const passwordRules = useMemo(() => getPasswordRules(form.password), [form.password]);
+  const passwordIsValid = passwordRules.every((rule) => rule.valid);
 
   const errors = useMemo(() => {
     const nextErrors = {};
 
-    if (!form.name.trim()) nextErrors.name = 'Informe seu nome completo.';
-    if (!/^\S+@\S+\.\S+$/.test(form.email)) nextErrors.email = 'Use um e-mail válido.';
-    if (form.phone.replace(/\D/g, '').length < 10) nextErrors.phone = 'Informe um telefone válido.';
-    if (form.password.length < 6) nextErrors.password = 'A senha precisa ter ao menos 6 caracteres.';
+    if (form.name.trim().split(/\s+/).length < 2) nextErrors.name = 'Informe nome e sobrenome.';
+    if (!/^\S+@\S+\.\S+$/.test(form.email)) nextErrors.email = 'Use um e-mail valido.';
+    if (!isValidCpf(form.cpf)) nextErrors.cpf = 'Informe um CPF valido.';
+    if (onlyDigits(form.phone).length < 10) nextErrors.phone = 'Informe um telefone valido.';
+    if (!passwordIsValid) {
+      nextErrors.password = 'Complete os requisitos da senha.';
+    }
     if (form.confirmPassword !== form.password) {
       nextErrors.confirmPassword = 'As senhas precisam ser iguais.';
     }
     if (!acceptedTerms) nextErrors.terms = 'Aceite os termos para continuar.';
 
     return nextErrors;
-  }, [acceptedTerms, form]);
+  }, [acceptedTerms, form, passwordIsValid]);
 
   const updateField = (field, value) => {
+    setFeedback('');
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleCreateAccount = () => {
+  const handleCreateAccount = async () => {
     setSubmitted(true);
+    setFeedback('');
 
     if (Object.keys(errors).length > 0) return;
 
-    registerMockUser(form);
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Home' }],
-    });
+    setLoading(true);
+
+    try {
+      await authService.register({
+        full_name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        cpf: onlyDigits(form.cpf),
+        phone: onlyDigits(form.phone),
+        password: form.password,
+      });
+
+      await login(form.email.trim().toLowerCase(), form.password);
+    } catch (error) {
+      setFeedback(getRegisterErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fieldError = (name) => (submitted ? errors[name] : undefined);
@@ -67,7 +161,7 @@ export default function RegisterScreen({ navigation }) {
     <SafeAreaView style={styles.safe}>
       <EcoBackground />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
       >
         <ScrollView
@@ -79,7 +173,7 @@ export default function RegisterScreen({ navigation }) {
             <View style={styles.header}>
               <LogoMark compact />
               <Text style={styles.title}>Crie sua conta</Text>
-              <Text style={styles.subtitle}>Entre na missão Eco-Tech com segurança e simplicidade.</Text>
+              <Text style={styles.subtitle}>Entre na missao Eco+ com seguranca e simplicidade.</Text>
             </View>
 
             <View style={styles.form}>
@@ -87,9 +181,10 @@ export default function RegisterScreen({ navigation }) {
                 label="Nome completo"
                 value={form.name}
                 onChangeText={(value) => updateField('name', value)}
-                placeholder="Seu nome"
+                placeholder="Seu nome e sobrenome"
                 autoCapitalize="words"
                 textContentType="name"
+                editable={!loading}
                 error={fieldError('name')}
                 icon={<UserRound size={20} color={colors.primary} strokeWidth={1.9} />}
               />
@@ -97,11 +192,23 @@ export default function RegisterScreen({ navigation }) {
                 label="E-mail"
                 value={form.email}
                 onChangeText={(value) => updateField('email', value)}
-                placeholder="voce@email.com"
+                placeholder="Digite seu e-mail"
                 keyboardType="email-address"
                 textContentType="emailAddress"
+                autoComplete="email"
+                editable={!loading}
                 error={fieldError('email')}
                 icon={<Mail size={20} color={colors.primary} strokeWidth={1.9} />}
+              />
+              <InputField
+                label="CPF"
+                value={form.cpf}
+                onChangeText={(value) => updateField('cpf', value)}
+                placeholder="000.000.000-00"
+                keyboardType="number-pad"
+                editable={!loading}
+                error={fieldError('cpf')}
+                icon={<Fingerprint size={20} color={colors.primary} strokeWidth={1.9} />}
               />
               <InputField
                 label="Telefone"
@@ -110,6 +217,7 @@ export default function RegisterScreen({ navigation }) {
                 placeholder="(00) 00000-0000"
                 keyboardType="phone-pad"
                 textContentType="telephoneNumber"
+                editable={!loading}
                 error={fieldError('phone')}
                 icon={<Phone size={20} color={colors.primary} strokeWidth={1.9} />}
               />
@@ -117,12 +225,40 @@ export default function RegisterScreen({ navigation }) {
                 label="Senha"
                 value={form.password}
                 onChangeText={(value) => updateField('password', value)}
-                placeholder="Mínimo de 6 caracteres"
+                placeholder="Crie uma senha segura"
                 secureTextEntry
                 textContentType="newPassword"
+                autoComplete="password-new"
+                editable={!loading}
                 error={fieldError('password')}
                 icon={<Lock size={20} color={colors.primary} strokeWidth={1.9} />}
               />
+              <View style={styles.passwordRules}>
+                {passwordRules.map((rule) => (
+                  <View key={rule.key} style={styles.passwordRule}>
+                    <View
+                      style={[
+                        styles.passwordRuleIcon,
+                        rule.valid ? styles.passwordRuleIconValid : styles.passwordRuleIconInvalid,
+                      ]}
+                    >
+                      {rule.valid ? (
+                        <Check size={12} color={colors.white} strokeWidth={3} />
+                      ) : (
+                        <X size={12} color={colors.white} strokeWidth={3} />
+                      )}
+                    </View>
+                    <Text
+                      style={[
+                        styles.passwordRuleText,
+                        rule.valid ? styles.passwordRuleTextValid : styles.passwordRuleTextInvalid,
+                      ]}
+                    >
+                      {rule.label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
               <InputField
                 label="Confirmar senha"
                 value={form.confirmPassword}
@@ -130,6 +266,8 @@ export default function RegisterScreen({ navigation }) {
                 placeholder="Repita sua senha"
                 secureTextEntry
                 textContentType="newPassword"
+                autoComplete="password-new"
+                editable={!loading}
                 error={fieldError('confirmPassword')}
                 icon={<Lock size={20} color={colors.primary} strokeWidth={1.9} />}
               />
@@ -137,6 +275,7 @@ export default function RegisterScreen({ navigation }) {
               <Pressable
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: acceptedTerms }}
+                disabled={loading}
                 onPress={() => setAcceptedTerms((current) => !current)}
                 style={styles.termsRow}
               >
@@ -144,23 +283,31 @@ export default function RegisterScreen({ navigation }) {
                   {acceptedTerms ? <Check size={15} color={colors.white} strokeWidth={3} /> : null}
                 </View>
                 <Text style={styles.termsText}>
-                  Concordo com os Termos e a Política de Privacidade.
+                  Concordo com os Termos e a Politica de Privacidade.
                 </Text>
               </Pressable>
               {submitted && errors.terms ? <Text style={styles.termsError}>{errors.terms}</Text> : null}
+              {feedback ? <Text style={styles.feedback}>{feedback}</Text> : null}
 
-              <PrimaryButton title="Criar Conta" onPress={handleCreateAccount} style={styles.button} />
+              <PrimaryButton
+                title="Criar conta"
+                onPress={handleCreateAccount}
+                loading={loading}
+                style={styles.button}
+              />
             </View>
 
             <Text style={styles.footer}>
-              Já tem uma conta?{' '}
+              Ja tem uma conta?{' '}
               <Text style={styles.footerLink} onPress={() => navigation.navigate('Login')}>
-                Iniciar sessão
+                Iniciar sessao
               </Text>
             </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <LoadingOverlay visible={loading} message="Criando conta..." />
     </SafeAreaView>
   );
 }
@@ -206,6 +353,43 @@ const styles = StyleSheet.create({
   form: {
     width: '100%',
   },
+  passwordRules: {
+    gap: 8,
+    marginTop: -4,
+    marginBottom: 14,
+    paddingHorizontal: 2,
+  },
+  passwordRule: {
+    minHeight: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  passwordRuleIcon: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  passwordRuleIconValid: {
+    backgroundColor: colors.primary,
+  },
+  passwordRuleIconInvalid: {
+    backgroundColor: colors.danger,
+  },
+  passwordRuleText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
+  passwordRuleTextValid: {
+    color: colors.primary,
+  },
+  passwordRuleTextInvalid: {
+    color: colors.muted,
+  },
   termsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -239,6 +423,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 8,
+  },
+  feedback: {
+    color: colors.danger,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 18,
+    marginTop: 2,
+    marginBottom: 10,
+    textAlign: 'center',
   },
   button: {
     marginTop: 12,

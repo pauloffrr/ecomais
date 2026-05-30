@@ -1,11 +1,12 @@
 import { useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../theme/colors';
 
-export default function PrimaryButton({ title, label, onPress, style, disabled = false }) {
+export default function PrimaryButton({ title, label, onPress, style, disabled = false, loading = false }) {
   const scale = useRef(new Animated.Value(1)).current;
   const buttonTitle = title ?? label;
+  const isDisabled = disabled || loading;
 
   const animate = (toValue) => {
     Animated.spring(scale, {
@@ -20,8 +21,8 @@ export default function PrimaryButton({ title, label, onPress, style, disabled =
     <Animated.View style={[styles.shadow, { transform: [{ scale }] }, style]}>
       <Pressable
         accessibilityRole="button"
-        accessibilityState={{ disabled }}
-        disabled={disabled}
+        accessibilityState={{ disabled: isDisabled, busy: loading }}
+        disabled={isDisabled}
         onPress={onPress}
         onPressIn={() => animate(0.97)}
         onPressOut={() => animate(1)}
@@ -31,9 +32,9 @@ export default function PrimaryButton({ title, label, onPress, style, disabled =
           colors={[colors.primaryLight, colors.primary, colors.primaryDark]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.gradient, disabled && styles.disabledGradient]}
+          style={[styles.gradient, isDisabled && styles.disabledGradient]}
         >
-          <Text style={styles.label}>{buttonTitle}</Text>
+          {loading ? <ActivityIndicator color={colors.white} /> : <Text style={styles.label}>{buttonTitle}</Text>}
         </LinearGradient>
       </Pressable>
     </Animated.View>

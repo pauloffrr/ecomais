@@ -9,6 +9,7 @@ const InputField = forwardRef(function InputField(
     label,
     value,
     onChangeText,
+    onBlur,
     placeholder,
     secureTextEntry,
     isPassword,
@@ -18,6 +19,7 @@ const InputField = forwardRef(function InputField(
     returnKeyType,
     onSubmitEditing,
     textContentType,
+    autoComplete,
     editable = true,
     style,
   },
@@ -55,8 +57,12 @@ const InputField = forwardRef(function InputField(
           returnKeyType={returnKeyType}
           onSubmitEditing={onSubmitEditing}
           textContentType={textContentType}
+          autoComplete={autoComplete}
           onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onBlur={(event) => {
+            setFocused(false);
+            onBlur?.(event);
+          }}
           editable={editable}
           style={[styles.input, !editable && styles.disabledInput]}
         />
