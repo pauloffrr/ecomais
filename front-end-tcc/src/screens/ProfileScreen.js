@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Award, FileText, HelpCircle, LogOut, Recycle, Settings, Sparkles } from 'lucide-react-native';
+import { Award, FileText, HelpCircle, LogOut, Recycle, Sparkles } from 'lucide-react-native';
 import FloatingTabBar from '../components/FloatingTabBar';
 import MenuItem from '../components/MenuItem';
 import ProfileCard from '../components/ProfileCard';
@@ -44,7 +44,7 @@ export default function ProfileScreen({ navigation }) {
     else if (key === 'scanner') navigation.navigate('Scanner');
     else if (key === 'history') navigation.navigate('History');
     else if (key === 'rewards') navigation.navigate('Rewards');
-    else if (key !== 'profile') Alert.alert('Coming soon', 'This area is ready for the next feature.');
+    else if (key !== 'profile') Alert.alert('Em breve', 'Esta area esta pronta para receber a proxima tela.');
   };
 
   const handleLogout = async () => {
@@ -58,7 +58,7 @@ export default function ProfileScreen({ navigation }) {
       <View style={styles.screen}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <Animated.View style={[styles.container, { opacity: fade }]}>
-            <AppHeader user={content.user} onAvatarPress={() => navigation.navigate('AccountSettings')} />
+            <AppHeader user={content.user} />
 
             <View style={styles.profileCardWrapper}>
               <ProfileCard user={content.user} />
@@ -103,14 +103,13 @@ export default function ProfileScreen({ navigation }) {
             </View>
 
             <View style={styles.menu}>
-              <MenuItem icon={Settings} label="Account Settings" onPress={() => navigation.navigate('AccountSettings')} />
-              <MenuItem icon={FileText} label="App Information" onPress={() => navigation.navigate('AppInformation')} />
-              <MenuItem icon={HelpCircle} label="Support Center" onPress={() => navigation.navigate('SupportCenter')} />
+              <MenuItem icon={FileText} label="Informacoes do App" onPress={() => navigation.navigate('AppInformation')} />
+              <MenuItem icon={HelpCircle} label="Central de Suporte" onPress={() => navigation.navigate('SupportCenter')} />
             </View>
 
             <Pressable accessibilityRole="button" onPress={handleLogout} style={styles.logoutButton}>
               <LogOut size={18} color={colors.danger} strokeWidth={2.1} />
-              <Text style={styles.logoutText}>Logout</Text>
+              <Text style={styles.logoutText}>Sair</Text>
             </Pressable>
           </Animated.View>
         </ScrollView>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView, ScrollView, View, Text, StyleSheet, Pressable, Alert } from 'react-native';
-import { Settings, LogOut, Info, HelpCircle } from 'lucide-react-native';
+import { LogOut, Info, HelpCircle } from 'lucide-react-native';
 import Header from '../components/Header';
 import FloatingTabBar from '../components/FloatingTabBar';
 import ProfileCard from '../components/ProfileCard';
@@ -80,11 +80,7 @@ export default function ProfileScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Header
-          appName="Eco+"
-          user={data.user}
-          onAvatarPress={() => navigation.navigate('AccountSettings')}
-        />
+        <Header appName="Eco+" user={data.user} />
 
         {/* Profile Card */}
         <ProfileCard user={data.user} />
@@ -138,11 +134,6 @@ export default function ProfileScreen({ navigation }) {
 
         {/* Settings Menu */}
         <View style={styles.menuSection}>
-          <MenuItem
-            icon={Settings}
-            label="Account Settings"
-            onPress={() => handleNavigateToSettings('AccountSettings')}
-          />
           <MenuItem
             icon={Info}
             label="App Information"

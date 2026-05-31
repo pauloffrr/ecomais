@@ -4,14 +4,16 @@ import { Controller, useForm } from 'react-hook-form';
 import {
   Animated,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { Lock, Mail } from 'lucide-react-native';
+import { Fingerprint, Lock, Mail, X } from 'lucide-react-native';
 import EcoBackground from '../components/EcoBackground';
 import InputField from '../components/InputField';
 import LoadingOverlay from '../components/LoadingOverlay';
@@ -20,6 +22,7 @@ import PrimaryButton from '../components/PrimaryButton';
 import { colors } from '../theme/colors';
 import { useAuth } from '../src/hooks/useAuth';
 import { loginSchema } from '../src/validation/loginSchema';
+import * as authService from '../src/services/authService';
 
 const getLoginErrorMessage = (error) => {
   if (error?.message === 'AUTH_TOKEN_NOT_FOUND') {
@@ -73,10 +76,134 @@ function Snackbar({ message, visible }) {
   );
 }
 
+const onlyDigits = (value) => value.replace(/\D/g, '');
+
+const validateResetForm = (form) => {
+  const errors = {};
+  const hasLetter = /[A-Za-z]/.test(form.newPassword);
+  const hasNumber = /\d/.test(form.newPassword);
+
+  if (!/^\S+@\S+\.\S+$/.test(form.email)) errors.email = 'Digite um e-mail valido.';
+  if (onlyDigits(form.cpf).length !== 11) errors.cpf = 'Digite o CPF cadastrado.';
+  if (form.newPassword.length < 8 || !hasLetter || !hasNumber) {
+    errors.newPassword = 'Use 8+ caracteres com letras e numeros.';
+  }
+  if (form.confirmPassword !== form.newPassword) {
+    errors.confirmPassword = 'As senhas precisam ser iguais.';
+  }
+
+  return errors;
+};
+
+function ResetPasswordModal({ visible, loading, onClose, onSubmit }) {
+  const [form, setForm] = useState({
+    email: '',
+    cpf: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [submitted, setSubmitted] = useState(false);
+
+  const errors = validateResetForm(form);
+  const fieldError = (name) => (submitted ? errors[name] : undefined);
+
+  const updateField = (field, value) => {
+    setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const close = () => {
+    setSubmitted(false);
+    setForm({ email: '', cpf: '', newPassword: '', confirmPassword: '' });
+    onClose();
+  };
+
+  const submit = () => {
+    setSubmitted(true);
+
+    if (Object.keys(errors).length > 0) return;
+
+    onSubmit({
+      email: form.email.trim().toLowerCase(),
+      cpf: onlyDigits(form.cpf),
+      newPassword: form.newPassword,
+    });
+  };
+
+  return (
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalCard}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Redefinir senha</Text>
+            <Pressable accessibilityRole="button" onPress={close} hitSlop={10} style={styles.closeButton}>
+              <X size={18} color={colors.muted} strokeWidth={2.2} />
+            </Pressable>
+          </View>
+
+          <Text style={styles.modalSubtitle}>
+            Informe o e-mail e CPF cadastrados para criar uma nova senha.
+          </Text>
+
+          <InputField
+            label="E-mail"
+            value={form.email}
+            onChangeText={(value) => updateField('email', value)}
+            placeholder="Digite seu e-mail"
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            autoComplete="email"
+            editable={!loading}
+            error={fieldError('email')}
+            icon={<Mail size={20} color={colors.primary} strokeWidth={1.9} />}
+          />
+          <InputField
+            label="CPF"
+            value={form.cpf}
+            onChangeText={(value) => updateField('cpf', value)}
+            placeholder="000.000.000-00"
+            keyboardType="number-pad"
+            editable={!loading}
+            error={fieldError('cpf')}
+            icon={<Fingerprint size={20} color={colors.primary} strokeWidth={1.9} />}
+          />
+          <InputField
+            label="Nova senha"
+            value={form.newPassword}
+            onChangeText={(value) => updateField('newPassword', value)}
+            placeholder="8+ caracteres com letras e numeros"
+            secureTextEntry
+            textContentType="newPassword"
+            autoComplete="password-new"
+            editable={!loading}
+            error={fieldError('newPassword')}
+            icon={<Lock size={20} color={colors.primary} strokeWidth={1.9} />}
+          />
+          <InputField
+            label="Confirmar senha"
+            value={form.confirmPassword}
+            onChangeText={(value) => updateField('confirmPassword', value)}
+            placeholder="Repita a nova senha"
+            secureTextEntry
+            textContentType="newPassword"
+            autoComplete="password-new"
+            editable={!loading}
+            error={fieldError('confirmPassword')}
+            icon={<Lock size={20} color={colors.primary} strokeWidth={1.9} />}
+          />
+
+          <PrimaryButton title="Alterar senha" onPress={submit} loading={loading} />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
   const [feedback, setFeedback] = useState('');
   const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [resetVisible, setResetVisible] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   const {
     control,
@@ -105,6 +232,26 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
+  const handleResetPassword = async (payload) => {
+    setResetLoading(true);
+
+    try {
+      await authService.resetPassword(payload);
+      setResetVisible(false);
+      showFeedback('Senha alterada com sucesso. Entre com a nova senha.');
+    } catch (error) {
+      if (error?.response?.status === 404) {
+        showFeedback('E-mail ou CPF nao encontrados.');
+      } else if (error?.response?.status === 422) {
+        showFeedback('Confira os dados e tente novamente.');
+      } else {
+        showFeedback('Nao foi possivel alterar a senha agora.');
+      }
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <EcoBackground />
@@ -120,7 +267,6 @@ export default function LoginScreen({ navigation }) {
           <View style={styles.container}>
             <View style={styles.header}>
               <LogoMark />
-              <Text style={styles.title}>Eco+</Text>
               <Text style={styles.subtitle}>
                 Entre para acompanhar sua jornada de reciclagem inteligente.
               </Text>
@@ -170,6 +316,14 @@ export default function LoginScreen({ navigation }) {
               />
 
               <PrimaryButton title="Entrar" onPress={handleSubmit(handleLogin)} loading={isSubmitting} />
+
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setResetVisible(true)}
+                style={styles.forgotButton}
+              >
+                <Text style={styles.forgotText}>Esqueci minha senha</Text>
+              </Pressable>
             </View>
 
             <Text style={styles.footer}>
@@ -183,6 +337,12 @@ export default function LoginScreen({ navigation }) {
       </KeyboardAvoidingView>
 
       <Snackbar message={feedback} visible={feedbackVisible} />
+      <ResetPasswordModal
+        visible={resetVisible}
+        loading={resetLoading}
+        onClose={() => setResetVisible(false)}
+        onSubmit={handleResetPassword}
+      />
       <LoadingOverlay visible={isSubmitting} message="Entrando..." />
     </SafeAreaView>
   );
@@ -213,15 +373,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
-  title: {
-    marginTop: 12,
-    color: colors.text,
-    fontSize: 30,
-    fontWeight: '900',
-    letterSpacing: 0,
-  },
   subtitle: {
-    marginTop: 8,
+    marginTop: 14,
     maxWidth: 318,
     color: colors.muted,
     fontSize: 15,
@@ -231,6 +384,17 @@ const styles = StyleSheet.create({
   },
   form: {
     width: '100%',
+  },
+  forgotButton: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  forgotText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '900',
   },
   footer: {
     marginTop: 28,
@@ -264,5 +428,50 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    padding: 22,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+    padding: 18,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  modalTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  closeButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceSoft,
+  },
+  modalSubtitle: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '700',
+    marginBottom: 14,
   },
 });

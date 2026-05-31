@@ -1,44 +1,251 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Keyboard, RefreshCcw } from 'lucide-react-native';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { CheckCircle2, Keyboard, PackageCheck, RefreshCcw, X } from 'lucide-react-native';
 import CameraScanner from '../components/CameraScanner';
 import FloatingTabBar from '../components/FloatingTabBar';
 import Header from '../components/Header';
 import StatsCard from '../components/StatsCard';
 import StatusBadge from '../components/StatusBadge';
 import WeeklyGoalCard from '../components/WeeklyGoalCard';
+import { useAuth } from '../src/hooks/useAuth';
+import { useScanner } from '../src/hooks/useScanner';
 import { colors } from '../theme/colors';
-import mockScannerData from '../data/mockScannerData.json';
+
+const SCANNER_TABS = [
+  { key: 'home', label: 'Home', icon: 'home' },
+  { key: 'scanner', label: 'Scanner', icon: 'scan' },
+  { key: 'history', label: 'Historico', icon: 'bar-chart' },
+  { key: 'rewards', label: 'Recompensas', icon: 'gift' },
+  { key: 'profile', label: 'Perfil', icon: 'user' },
+];
+
+const getAvatarInitial = (fullName) => {
+  const initial = fullName?.trim()?.charAt(0);
+  return initial ? initial.toUpperCase() : 'E';
+};
+
+const formatDateTime = (date) =>
+  date
+    ? new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(date)
+    : '';
+
+const getSessionErrorMessage = (error, fallback) => {
+  const detail = String(error?.response?.data?.detail ?? '').toLowerCase();
+
+  if (error?.message === 'QR_INVALID') return 'QR invalido.';
+  if (error?.response?.status === 404) return 'Maquina nao encontrada.';
+  if (error?.response?.status === 409 && detail.includes('active session')) {
+    return 'Voce ja possui uma sessao ativa.';
+  }
+  if (error?.response?.status === 409) return 'Esta estacao esta indisponivel no momento.';
+  if (error?.response?.status >= 500 || !error?.response) return 'Falha ao conectar com a estacao.';
+
+  return fallback || 'Falha ao conectar com a estacao.';
+};
+
+const MATERIAL_TRANSLATIONS = {
+  'Aluminum Can': 'Lata de aluminio',
+  Cardboard: 'Papelao',
+  'Clear Glass Bottle': 'Garrafa de vidro transparente',
+  'Colored Glass Bottle': 'Garrafa de vidro colorido',
+  'Electronic Waste': 'Lixo eletronico',
+  'HDPE Plastic Container': 'Embalagem plastica HDPE',
+  'Newspaper & Paper': 'Jornal e papel',
+  'Organic Waste': 'Residuos organicos',
+  'PET Plastic Bottle': 'Garrafa PET',
+  'Steel Can': 'Lata de aco',
+};
+
+const getMaterialNamePtBr = (material) =>
+  MATERIAL_TRANSLATIONS[material.name] ?? material.name;
+
+function MachineInfoCard({ session, connectedAt }) {
+  const machine = session?.machine;
+
+  if (!machine) return null;
+
+  return (
+    <View style={styles.machineCard}>
+      <View style={styles.machineIcon}>
+        <CheckCircle2 size={22} color={colors.primary} strokeWidth={2.2} />
+      </View>
+      <View style={styles.machineContent}>
+        <Text style={styles.machineTitle}>{machine.location_name}</Text>
+        <Text style={styles.machineMeta}>Maquina {machine.bin_code}</Text>
+        <Text style={styles.machineMeta}>Status {String(machine.status).toUpperCase()}</Text>
+        <Text style={styles.machineMeta}>Conectada em {formatDateTime(connectedAt)}</Text>
+        <Text style={styles.machineSession}>Sessao ativa #{session.id}</Text>
+      </View>
+    </View>
+  );
+}
+
+function MaterialsCard({ materials, loading }) {
+  return (
+    <View style={styles.materialsCard}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Materiais aceitos</Text>
+        <PackageCheck size={20} color={colors.primary} strokeWidth={2.1} />
+      </View>
+
+      {loading ? (
+        <ActivityIndicator color={colors.primary} style={styles.materialLoading} />
+      ) : (
+        <View style={styles.materialList}>
+          {materials.map((material) => (
+            <View key={material.id} style={styles.materialChip}>
+              <Text style={styles.materialText}>{getMaterialNamePtBr(material)}</Text>
+            </View>
+          ))}
+          {materials.length === 0 ? (
+            <Text style={styles.emptyText}>Nenhum material ativo foi encontrado.</Text>
+          ) : null}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function ManualCodeModal({ visible, loading, onClose, onSubmit }) {
+  const [code, setCode] = useState('');
+
+  const submit = () => {
+    onSubmit(code);
+    setCode('');
+  };
+
+  const close = () => {
+    setCode('');
+    onClose();
+  };
+
+  return (
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalCard}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Informar codigo da maquina</Text>
+            <Pressable accessibilityRole="button" onPress={close} hitSlop={10} style={styles.closeButton}>
+              <X size={18} color={colors.muted} strokeWidth={2.2} />
+            </Pressable>
+          </View>
+
+          <TextInput
+            value={code}
+            onChangeText={setCode}
+            placeholder="Codigo da maquina"
+            placeholderTextColor="#9BAAA2"
+            autoCapitalize="characters"
+            editable={!loading}
+            style={styles.manualInput}
+          />
+
+          <Pressable
+            accessibilityRole="button"
+            disabled={loading}
+            onPress={submit}
+            style={[styles.modalSubmit, loading && styles.modalSubmitDisabled]}
+          >
+            {loading ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <Text style={styles.modalSubmitText}>Validar maquina</Text>
+            )}
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 export default function ScannerScreen({ navigation }) {
-  const [scannerData, setScannerData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
-  const [scannedCode, setScannedCode] = useState(null);
+  const { user } = useAuth();
+  const scanner = useScanner();
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setScannerData(mockScannerData);
-      setLoading(false);
-    }, 250);
+  const headerUser = useMemo(
+    () => ({
+      ...user,
+      avatarInitials: getAvatarInitial(user?.full_name),
+    }),
+    [user]
+  );
 
-    return () => clearTimeout(timer);
-  }, []);
+  const connectionStatus = scanner.session?.machine?.status ?? 'offline';
+  const connectionLabel = scanner.machineConnected
+    ? String(connectionStatus).toUpperCase()
+    : 'AGUARDANDO QR';
 
-  const data = useMemo(() => scannerData ?? mockScannerData, [scannerData]);
+  const stats = useMemo(
+    () => [
+      {
+        id: 'points',
+        label: 'PONTOS GANHOS',
+        value: String(scanner.todayMetrics.points),
+        icon: 'leaf',
+      },
+      {
+        id: 'items',
+        label: 'ITENS COLETADOS',
+        value: String(scanner.todayMetrics.items),
+        icon: 'recycle',
+      },
+    ],
+    [scanner.todayMetrics.items, scanner.todayMetrics.points]
+  );
 
-  const handleScanned = useCallback(({ data: code }) => {
-    setScannedCode(code);
-    setProcessing(true);
+  const showSessionError = useCallback(
+    (error) => {
+      Alert.alert('Validacao da maquina', getSessionErrorMessage(error, scanner.errorMessage));
+    },
+    [scanner.errorMessage]
+  );
 
-    setTimeout(() => {
-      setProcessing(false);
-      Alert.alert(
-        'QR Code lido',
-        `Código da máquina: ${code}\n\nPronto para validar este código na API REST.`
-      );
-    }, 900);
-  }, []);
+  const validateMachine = useCallback(
+    async (code) => {
+      try {
+        await scanner.scanMachine(code);
+      } catch (error) {
+        showSessionError(error);
+      }
+    },
+    [scanner, showSessionError]
+  );
+
+  const handleScanned = useCallback(
+    ({ data: code }) => {
+      validateMachine(code);
+    },
+    [validateMachine]
+  );
+
+  const handleManualSubmit = useCallback(
+    async (code) => {
+      try {
+        await scanner.scanMachine(code);
+        scanner.setManualModalVisible(false);
+      } catch (error) {
+        showSessionError(error);
+      }
+    },
+    [scanner, showSessionError]
+  );
 
   const handleTabChange = (key) => {
     if (key === 'home') {
@@ -52,7 +259,7 @@ export default function ScannerScreen({ navigation }) {
     }
 
     if (key === 'profile') {
-      navigation.navigate('Profile');
+      navigation.navigate('AccountSettings');
       return;
     }
 
@@ -62,80 +269,96 @@ export default function ScannerScreen({ navigation }) {
     }
 
     if (key !== 'scanner') {
-      Alert.alert('Em breve', 'Esta área está pronta para receber a próxima tela.');
+      Alert.alert('Em breve', 'Esta area esta pronta para receber a proxima tela.');
     }
-  };
-
-  const handleManualCode = () => {
-    Alert.alert('Código manual', 'Fluxo mockado. Pronto para tela de digitação manual.');
-  };
-
-  const handleScanAgain = () => {
-    setScannedCode(null);
-    setProcessing(false);
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.screen}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <View style={styles.container}>
-            <Header
-              appName="Eco+"
-              user={data.user}
-              onAvatarPress={() => navigation.navigate('Profile')}
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          refreshControl={
+            <RefreshControl
+              refreshing={scanner.refreshing}
+              tintColor={colors.primary}
+              onRefresh={scanner.refresh}
             />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.container}>
+            <Header appName="Eco+" user={headerUser} />
 
             <View style={styles.badgeWrapper}>
-              <StatusBadge label={data.connection.label} />
+              <StatusBadge label={connectionLabel} status={connectionStatus} />
             </View>
 
             <View style={styles.copy}>
-              <Text style={styles.title}>{data.scanner.title}</Text>
-              <Text style={styles.subtitle}>{data.scanner.subtitle}</Text>
+              <Text style={styles.title}>Escaneie o QR da maquina</Text>
+              <Text style={styles.subtitle}>
+                Aponte sua camera para o codigo QR localizado na lateral da estacao de reciclagem.
+              </Text>
             </View>
 
             <CameraScanner
               onScanned={handleScanned}
-              processing={processing}
-              disabled={Boolean(scannedCode)}
+              processing={scanner.scanning}
+              disabled={scanner.sessionActive}
             />
 
-            {scannedCode ? (
+            {scanner.scannedCode ? (
               <View style={styles.scanResult}>
-                <Text style={styles.scannedText}>Último código lido: {scannedCode}</Text>
-                <Pressable accessibilityRole="button" onPress={handleScanAgain} style={styles.scanAgainButton}>
+                <Text style={styles.scannedText}>Ultimo codigo lido: {scanner.scannedCode}</Text>
+                <Pressable accessibilityRole="button" onPress={scanner.resetScan} style={styles.scanAgainButton}>
                   <RefreshCcw size={15} color={colors.primary} strokeWidth={2.2} />
                   <Text style={styles.scanAgainText}>Escanear novamente</Text>
                 </Pressable>
               </View>
             ) : null}
 
-            {loading ? (
-              <View style={styles.loadingCard} />
+            <MachineInfoCard session={scanner.session} connectedAt={scanner.lastConnectedAt} />
+
+            {scanner.loading ? (
+              <View style={styles.loadingCard}>
+                <ActivityIndicator color={colors.primary} />
+              </View>
             ) : (
               <>
                 <View style={styles.statsRow}>
-                  {data.stats.map((item) => (
+                  {stats.map((item) => (
                     <StatsCard key={item.id} item={item} />
                   ))}
                 </View>
 
                 <View style={styles.goalWrapper}>
-                  <WeeklyGoalCard goal={data.weeklyGoal} />
+                  <WeeklyGoalCard goal={scanner.weeklyGoal} />
                 </View>
               </>
             )}
 
-            <Pressable accessibilityRole="button" onPress={handleManualCode} style={styles.manualButton}>
+            <MaterialsCard materials={scanner.acceptedMaterials} loading={scanner.loading} />
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => scanner.setManualModalVisible(true)}
+              style={styles.manualButton}
+            >
               <Keyboard size={18} color={colors.primary} strokeWidth={2.1} />
-              <Text style={styles.manualText}>Digitar código manualmente</Text>
+              <Text style={styles.manualText}>Digitar codigo manualmente</Text>
             </Pressable>
           </View>
         </ScrollView>
 
-        <FloatingTabBar tabs={data.tabs} activeKey="scanner" onChange={handleTabChange} />
+        <FloatingTabBar tabs={SCANNER_TABS} activeKey="scanner" onChange={handleTabChange} />
       </View>
+
+      <ManualCodeModal
+        visible={scanner.manualModalVisible}
+        loading={scanner.scanning}
+        onClose={() => scanner.setManualModalVisible(false)}
+        onSubmit={handleManualSubmit}
+      />
     </SafeAreaView>
   );
 }
@@ -205,6 +428,48 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
   },
+  machineCard: {
+    minHeight: 112,
+    flexDirection: 'row',
+    gap: 14,
+    marginTop: 16,
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+    padding: 18,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
+  machineIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.surfaceSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  machineContent: {
+    flex: 1,
+  },
+  machineTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  machineMeta: {
+    marginTop: 4,
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  machineSession: {
+    marginTop: 8,
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '900',
+  },
   statsRow: {
     flexDirection: 'row',
     gap: 14,
@@ -217,12 +482,62 @@ const styles = StyleSheet.create({
     height: 118,
     borderRadius: 24,
     backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 22,
     shadowColor: colors.shadow,
     shadowOpacity: 0.05,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
     elevation: 3,
+  },
+  materialsCard: {
+    marginTop: 14,
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+    padding: 18,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  sectionTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  materialLoading: {
+    marginVertical: 12,
+  },
+  materialList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  materialChip: {
+    minHeight: 34,
+    justifyContent: 'center',
+    borderRadius: 17,
+    backgroundColor: colors.surfaceSoft,
+    paddingHorizontal: 12,
+  },
+  materialText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  emptyText: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '700',
   },
   manualButton: {
     minHeight: 50,
@@ -235,6 +550,71 @@ const styles = StyleSheet.create({
   manualText: {
     color: colors.primary,
     fontSize: 14,
+    fontWeight: '900',
+  },
+  modalOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    padding: 22,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 390,
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+    padding: 18,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  modalTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  closeButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceSoft,
+  },
+  manualInput: {
+    minHeight: 54,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '700',
+    paddingHorizontal: 16,
+  },
+  modalSubmit: {
+    minHeight: 54,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+    backgroundColor: colors.primary,
+  },
+  modalSubmitDisabled: {
+    opacity: 0.72,
+  },
+  modalSubmitText: {
+    color: colors.white,
+    fontSize: 15,
     fontWeight: '900',
   },
 });

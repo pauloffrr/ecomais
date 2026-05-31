@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
-import { BusFront, Coffee, TreePine } from 'lucide-react-native';
+import { BusFront, Coffee, Lock, TreePine } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import PointsBadge from './PointsBadge';
 import { colors, gradients } from '../theme/colors';
@@ -15,6 +15,7 @@ const visuals = {
 export default function RewardCard({ reward, onRedeem, onOpen }) {
   const scale = useRef(new Animated.Value(1)).current;
   const Icon = visuals[reward.visual] ?? TreePine;
+  const locked = Boolean(reward.locked);
 
   const animate = (toValue) => {
     Animated.spring(scale, {
@@ -27,10 +28,20 @@ export default function RewardCard({ reward, onRedeem, onOpen }) {
 
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
-      <Pressable onPress={onOpen} onPressIn={() => animate(0.985)} onPressOut={() => animate(1)} style={styles.card}>
+      <Pressable
+        onPress={onOpen}
+        onPressIn={() => animate(0.985)}
+        onPressOut={() => animate(1)}
+        style={[styles.card, locked && styles.cardLocked]}
+      >
         <View style={styles.visual}>
           <LinearGradient colors={gradients.primary} style={styles.visualGradient}>
             <Icon size={46} color={colors.white} strokeWidth={2} />
+            {locked ? (
+              <View style={styles.lockBadge}>
+                <Lock size={16} color={colors.white} strokeWidth={2.4} />
+              </View>
+            ) : null}
           </LinearGradient>
         </View>
 
@@ -39,9 +50,14 @@ export default function RewardCard({ reward, onRedeem, onOpen }) {
           <Text style={styles.title}>{reward.title}</Text>
           <Text style={styles.description}>{reward.description}</Text>
           <View style={styles.footer}>
-            <PointsBadge points={reward.points} />
-            <Pressable accessibilityRole="button" onPress={onRedeem} style={styles.button}>
-              <Text style={styles.buttonText}>{reward.actionLabel}</Text>
+            <PointsBadge points={reward.pointsRequired ?? reward.points} />
+            <Pressable
+              accessibilityRole="button"
+              disabled={locked}
+              onPress={onRedeem}
+              style={[styles.button, locked && styles.buttonDisabled]}
+            >
+              <Text style={styles.buttonText}>{locked ? 'Pontos insuficientes' : reward.actionLabel}</Text>
             </Pressable>
           </View>
         </View>
@@ -64,6 +80,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 6,
   },
+  cardLocked: {
+    opacity: 0.58,
+  },
   visual: {
     height: 128,
     padding: spacing.md,
@@ -73,6 +92,17 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  lockBadge: {
+    position: 'absolute',
+    right: 14,
+    top: 14,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(31,41,55,0.35)',
   },
   content: {
     paddingHorizontal: spacing.lg,
@@ -111,6 +141,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: 20,
     backgroundColor: colors.primary,
+  },
+  buttonDisabled: {
+    backgroundColor: colors.inactive,
   },
   buttonText: {
     color: colors.white,

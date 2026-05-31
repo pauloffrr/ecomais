@@ -1,10 +1,12 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
 
-export default function StatusBadge({ label }) {
+export default function StatusBadge({ label, status = 'online' }) {
+  const online = status === 'online' || status === 'active';
+
   return (
     <View style={styles.badge}>
-      <View style={styles.dot} />
+      <View style={[styles.dot, online ? styles.dotOnline : styles.dotOffline]} />
       <Text style={styles.label}>{label}</Text>
     </View>
   );
@@ -30,7 +32,12 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+  },
+  dotOnline: {
     backgroundColor: colors.primaryLight,
+  },
+  dotOffline: {
+    backgroundColor: colors.danger,
   },
   label: {
     color: colors.text,

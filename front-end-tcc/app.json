@@ -20,13 +20,7 @@
       "package": "com.ecotech.app"
     },
     "extra": {
-      "apiBaseUrl": "http://192.168.1.5:8001/v1",
-      "googleAuth": {
-        "expoClientId": "COLOQUE_SEU_EXPO_CLIENT_ID.apps.googleusercontent.com",
-        "iosClientId": "COLOQUE_SEU_IOS_CLIENT_ID.apps.googleusercontent.com",
-        "androidClientId": "COLOQUE_SEU_ANDROID_CLIENT_ID.apps.googleusercontent.com",
-        "webClientId": "COLOQUE_SEU_WEB_CLIENT_ID.apps.googleusercontent.com"
-      }
+      "apiBaseUrl": "http://192.168.1.5:8001/v1"
     },
     "plugins": [
       "expo-font",

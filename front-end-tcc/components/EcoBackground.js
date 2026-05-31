@@ -7,6 +7,7 @@ export default function EcoBackground() {
     <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
       <View style={[styles.glow, styles.glowTop]} />
       <View style={[styles.glow, styles.glowBottom]} />
+      <Leaf size={360} color={colors.primary} strokeWidth={0.9} style={styles.heroLeaf} />
       <Leaf size={92} color={colors.primary} strokeWidth={1.2} style={styles.leafOne} />
       <Leaf size={62} color={colors.primaryDark} strokeWidth={1.1} style={styles.leafTwo} />
       <Recycle size={44} color={colors.primary} strokeWidth={1.2} style={styles.recycle} />
@@ -35,6 +36,13 @@ const styles = StyleSheet.create({
   glowBottom: {
     left: -84,
     bottom: 24,
+  },
+  heroLeaf: {
+    position: 'absolute',
+    top: 122,
+    right: -154,
+    opacity: 0.045,
+    transform: [{ rotate: '16deg' }],
   },
   leafOne: {
     position: 'absolute',

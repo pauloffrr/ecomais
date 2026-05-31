@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Archive, Beer, BottleWine } from 'lucide-react-native';
+import { Archive, Beer, BottleWine, Cpu, FileText, Package } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 
 const materialTheme = {
@@ -18,6 +18,21 @@ const materialTheme = {
     icon: Archive,
     iconColor: colors.primary,
     background: '#E7F8ED',
+  },
+  paper: {
+    icon: FileText,
+    iconColor: '#7C3AED',
+    background: '#F2ECFF',
+  },
+  electronic: {
+    icon: Cpu,
+    iconColor: '#0891B2',
+    background: '#E6F7FB',
+  },
+  other: {
+    icon: Package,
+    iconColor: colors.muted,
+    background: colors.surfaceSoft,
   },
 };
 
