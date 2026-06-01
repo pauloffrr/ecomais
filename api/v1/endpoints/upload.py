@@ -10,6 +10,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request, Header
 from sqlalchemy.orm import Session
 
+from models import ActiveSession
 from database import get_db
 from api.v1.schemas.bin import (
     BinUploadRequest,
@@ -153,17 +154,25 @@ async def upload_discard(
         if not is_valid or not bin:
             raise HTTPException(status_code=401, detail=error_msg or "Authentication failed")
 
-        # ===== STEP 2: VALIDATE ACTIVE SESSION (User Context) =====
+        # ===== STEP 2: VALIDATE ACTIVE SESSION =====
+        # Use the session token sent by the ESP32 instead of relying on the latest row.
         is_valid, session, error_msg = validate_session(
             session_token=data.session_token,
             bin_id=bin.id,
-            db=db
+            db=db,
         )
 
-        if not is_valid:
-            # Cleanup expired sessions opportunistically
-            background_tasks.add_task(cleanup_expired_sessions, db)
-            raise HTTPException(status_code=403, detail=error_msg)
+        if not is_valid or not session:
+            logger.warning(
+                "Session validation failed for bin %s and token %s: %s",
+                x_bin_id,
+                data.session_token,
+                error_msg,
+            )
+            raise HTTPException(
+                status_code=403,
+                detail=error_msg or "Sessao invalida, expirada ou nao encontrada",
+            )
 
         # ===== STEP 3: VALIDATE WEIGHT =====
         is_valid, error_msg = validate_weight(
@@ -256,7 +265,9 @@ async def upload_discard(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error processing upload: {e}", exc_info=True)
+        logger.exception("Error processing upload")
+        if settings.DEBUG or settings.ENVIRONMENT != "production":
+            raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

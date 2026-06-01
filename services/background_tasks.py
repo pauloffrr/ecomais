@@ -45,8 +45,9 @@ def save_image_to_disk(image_base64: str, discard_id: int) -> str:
         image_data = base64.b64decode(image_base64)
         image = Image.open(io.BytesIO(image_data))
 
-        # Converte PNG com transparência (RGBA) para RGB, pois JPEG não suporta canal Alpha
-        if image.mode in ("RGBA", "P"):
+        # JPEG only supports RGB, so normalize every incoming mode before saving.
+        # This covers RGBA, LA, P, L, and any other Pillow mode coming from the ESP32.
+        if image.mode != "RGB":
             image = image.convert("RGB")
 
         # Generate filename with timestamp
@@ -168,6 +169,12 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
 
             discard.points_applied = True
 
+            session = discard.session
+            if session:
+                session.weight_validated = True
+                session.vision_validated = True
+                complete_session(session)
+
         db.commit()
         logger.info(f"AI processing completed for discard {discard_id}")
 
@@ -259,6 +266,15 @@ def cleanup_expired_sessions(db: Session):
     except Exception as e:
         logger.error(f"Error cleaning up expired sessions: {e}")
         db.rollback()
+
+
+def complete_session(session: ActiveSession):
+    """Mark a validated session as completed."""
+    if session.status == SessionStatus.COMPLETED:
+        return
+
+    session.status = SessionStatus.COMPLETED
+    session.completed_at = datetime.utcnow()
 
 
 # ==================== IMAGE CLEANUP ====================

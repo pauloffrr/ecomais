@@ -242,7 +242,8 @@ def update_session_validation_status(
     """
     try:
         session.weight_validated = weight_validated
-        session.vision_validated = vision_validated
+        if session.status != SessionStatus.COMPLETED:
+            session.vision_validated = vision_validated
         db.commit()
     except Exception as e:
         logger.error(f"Error updating session status: {e}")
