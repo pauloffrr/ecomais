@@ -53,6 +53,7 @@ log.txt
 *.swo
 *~
 .DS_Store
+*.code-workspace
 
 # Jupyter Notebook
 .ipynb_checkpoints
