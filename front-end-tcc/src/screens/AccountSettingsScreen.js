@@ -10,13 +10,14 @@ import {
   Text,
   View,
 } from 'react-native';
-import { LogOut } from 'lucide-react-native';
+import { LogOut, ShieldCheck } from 'lucide-react-native';
 import GradientButton from '../components/GradientButton';
 import { BackHeader } from '../components/ScreenHeader';
 import TextInputField from '../components/TextInputField';
 import { useAuth } from '../hooks/useAuth';
 import { useUser } from '../hooks/useUser';
 import * as userService from '../services/userService';
+import { isAdminUser } from '../utils/userRole';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 
@@ -96,7 +97,7 @@ export default function AccountSettingsScreen({ navigation }) {
       await updateAuthUser(updatedUser);
       await refetch({ refresh: true });
       setPassword({ current: '', next: '', confirm: '' });
-      Alert.alert('Alteracoes salvas', 'Suas configuracoes foram atualizadas.');
+      Alert.alert('Alteracoes salvas', 'Suas configurações foram atualizadas.');
     } catch (error) {
       Alert.alert('Nao foi possivel salvar', error?.message || 'Tente novamente em alguns instantes.');
     } finally {
@@ -123,7 +124,7 @@ export default function AccountSettingsScreen({ navigation }) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.container}>
-            <BackHeader title="Configuracoes da Conta" onBack={() => navigation.goBack()} />
+            <BackHeader title="Configurações da Conta" onBack={() => navigation.goBack()} />
 
             <View style={styles.userCard}>
               <View style={styles.avatar}>
@@ -192,10 +193,22 @@ export default function AccountSettingsScreen({ navigation }) {
             </View>
 
             <GradientButton
-              title={saving ? 'Salvando...' : 'Salvar alteracoes'}
+              title={saving ? 'Salvando...' : 'Salvar alterações'}
               disabled={saving || loading}
               onPress={handleSave}
             />
+
+            {isAdminUser(user) ? (
+              <Pressable
+                accessibilityRole="button"
+                disabled={saving}
+                onPress={() => navigation.navigate('AdminDashboard')}
+                style={({ pressed }) => [styles.adminButton, pressed && styles.logoutButtonPressed]}
+              >
+                <ShieldCheck size={18} color={colors.primary} strokeWidth={2.2} />
+                <Text style={styles.adminText}>Abrir Painel Administrativo</Text>
+              </Pressable>
+            ) : null}
 
             <Pressable
               accessibilityRole="button"
@@ -302,6 +315,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
+  },
+  adminButton: {
+    minHeight: 56,
+    marginTop: spacing.md,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: colors.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  adminText: {
+    color: colors.primary,
+    fontSize: 15,
+    fontWeight: '900',
   },
   logoutButtonPressed: {
     opacity: 0.82,

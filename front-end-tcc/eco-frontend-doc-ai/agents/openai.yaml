@@ -1,0 +1,4 @@
+interface:
+  display_name: "Eco+ Frontend Doc AI"
+  short_description: "Documenta tecnicamente o frontend mobile Eco+"
+  default_prompt: "Use $eco-frontend-doc-ai para analisar este projeto React Native/Expo e atualizar DOCUMENTACAO_FRONTEND.md na raiz."

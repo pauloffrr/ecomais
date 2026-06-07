@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Award, FileText, HelpCircle, LogOut, Recycle, Sparkles } from 'lucide-react-native';
 import FloatingTabBar from '../components/FloatingTabBar';
 import MenuItem from '../components/MenuItem';
@@ -7,11 +7,12 @@ import ProfileCard from '../components/ProfileCard';
 import ProgressCard from '../components/ProgressCard';
 import { AppHeader } from '../components/ScreenHeader';
 import StatusCard from '../components/StatusCard';
-import { profileData } from '../mocks/profileData';
-import { api } from '../services/api';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 import { useAuth } from '../hooks/useAuth';
+import { useDiscards } from '../hooks/useDiscards';
+import { useUser } from '../hooks/useUser';
+import { isAdminUser } from '../utils/userRole';
 
 const historyIcons = {
   plastic: Recycle,
@@ -20,24 +21,48 @@ const historyIcons = {
 
 export default function ProfileScreen({ navigation }) {
   const { logout } = useAuth();
-  const [data, setData] = useState(null);
-  const fade = useRef(new Animated.Value(0)).current;
+  const { user } = useUser();
+  const { discards } = useDiscards();
 
-  useEffect(() => {
-    let mounted = true;
-    api.getProfile().finally(() => {
-      if (!mounted) return;
-      setData(profileData);
-      Animated.timing(fade, {
-        toValue: 1,
-        duration: 280,
-        useNativeDriver: true,
-      }).start();
-    });
-    return () => {
-      mounted = false;
+  const content = useMemo(() => {
+    const fullName = user?.full_name ?? 'Usuario Eco+';
+    const nameParts = fullName.trim().split(/\s+/).filter(Boolean);
+    const totalPoints = Number(user?.total_points ?? 0);
+    const currentLevel = Math.floor(totalPoints / 1000) + 1;
+    const pointsInLevel = totalPoints % 1000;
+
+    return {
+      user: {
+        name: fullName,
+        email: user?.email ?? '',
+        avatarInitials: nameParts.length > 1
+          ? `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase()
+          : fullName.charAt(0).toUpperCase(),
+        badge: isAdminUser(user) ? 'ADMINISTRADOR ECO+' : 'MEMBRO ECO+',
+        totalPoints,
+        currentLevel,
+        nextLevel: currentLevel + 1,
+        nextLevelPoints: 1000 - pointsInLevel,
+        progressPercentage: Math.round((pointsInLevel / 1000) * 100),
+        verified: Boolean(user?.id),
+      },
+      recentHistory: discards.slice(0, 3).map((discard) => ({
+        id: String(discard.id),
+        material: discard.material_name ?? 'Material reciclavel',
+        date: new Date(discard.created_at).toLocaleDateString('pt-BR'),
+        weight: `${(Number(discard.weight_grams ?? 0) / 1000).toLocaleString('pt-BR')} kg`,
+        points: Number(discard.points_awarded ?? 0),
+        type: String(discard.material_name ?? '').toLowerCase().includes('paper') ? 'paper' : 'plastic',
+      })),
+      tabs: [
+        { key: 'home', label: 'Home', icon: 'home' },
+        { key: 'scanner', label: 'Scanner', icon: 'scan' },
+        { key: 'history', label: 'Historico', icon: 'bar-chart' },
+        { key: 'rewards', label: 'Recompensas', icon: 'gift' },
+        { key: 'profile', label: 'Perfil', icon: 'user' },
+      ],
     };
-  }, [fade]);
+  }, [discards, user]);
 
   const handleTabChange = (key) => {
     if (key === 'home') navigation.navigate('Home');
@@ -51,13 +76,11 @@ export default function ProfileScreen({ navigation }) {
     await logout();
   };
 
-  const content = data ?? profileData;
-
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.screen}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <Animated.View style={[styles.container, { opacity: fade }]}>
+          <View style={styles.container}>
             <AppHeader user={content.user} />
 
             <View style={styles.profileCardWrapper}>
@@ -100,6 +123,9 @@ export default function ProfileScreen({ navigation }) {
                   </View>
                 );
               })}
+              {content.recentHistory.length === 0 ? (
+                <Text style={styles.emptyHistory}>Nenhum descarte registrado ainda.</Text>
+              ) : null}
             </View>
 
             <View style={styles.menu}>
@@ -111,7 +137,7 @@ export default function ProfileScreen({ navigation }) {
               <LogOut size={18} color={colors.danger} strokeWidth={2.1} />
               <Text style={styles.logoutText}>Sair</Text>
             </Pressable>
-          </Animated.View>
+          </View>
         </ScrollView>
 
         <FloatingTabBar tabs={content.tabs} activeKey="profile" onChange={handleTabChange} />
@@ -170,6 +196,13 @@ const styles = StyleSheet.create({
   },
   historyList: {
     gap: spacing.sm,
+  },
+  emptyHistory: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+    paddingVertical: spacing.lg,
   },
   historyCard: {
     minHeight: 76,

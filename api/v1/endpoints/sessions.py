@@ -27,9 +27,13 @@ def start_session(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
-    smart_bin = db.query(SmartBin).filter(SmartBin.bin_code == payload.bin_code).first()
-    if not smart_bin or smart_bin.status != BinStatus.ACTIVE:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Smart bin not found or inactive")
+    machine_code = payload.machine_qr or payload.bin_code
+    smart_bin = db.query(SmartBin).filter(SmartBin.bin_code == machine_code).first()
+    if not smart_bin:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Smart bin not found")
+
+    if smart_bin.status != BinStatus.ACTIVE:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Smart bin is unavailable")
 
     active_sessions = (
         db.query(ActiveSession)
@@ -39,7 +43,12 @@ def start_session(
 
     now = datetime.now(timezone.utc)
     for active_session in active_sessions:
-        active_session.status = SessionStatus.CANCELLED
+        expires_at = active_session.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at > now:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already has an active session")
+        active_session.status = SessionStatus.EXPIRED
         active_session.completed_at = now
 
     session_token = secrets.token_urlsafe(32)
@@ -59,4 +68,13 @@ def start_session(
     db.commit()
     db.refresh(new_session)
 
-    return SessionResponse.model_validate(new_session)
+    return {
+        "id": new_session.id,
+        "session_token": new_session.session_token,
+        "user_id": new_session.user_id,
+        "bin_id": new_session.bin_id,
+        "status": new_session.status,
+        "started_at": new_session.started_at,
+        "expires_at": new_session.expires_at,
+        "machine": smart_bin,
+    }

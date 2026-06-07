@@ -18,9 +18,9 @@ import GradientButton from '../components/GradientButton';
 import Header from '../components/Header';
 import StatCard from '../components/StatCard';
 import TipCard from '../components/TipCard';
-import { useDiscards } from '../src/hooks/useDiscards';
-import { useRewards } from '../src/hooks/useRewards';
-import { useUser } from '../src/hooks/useUser';
+import { useDiscards } from '../hooks/useDiscards';
+import { useRewards } from '../hooks/useRewards';
+import { useUser } from '../hooks/useUser';
 import { colors } from '../theme/colors';
 
 const HOME_TABS = [

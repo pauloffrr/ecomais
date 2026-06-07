@@ -16,8 +16,8 @@ import LoadingOverlay from '../components/LoadingOverlay';
 import LogoMark from '../components/LogoMark';
 import PrimaryButton from '../components/PrimaryButton';
 import { colors } from '../theme/colors';
-import * as authService from '../src/api/authService';
-import { useAuth } from '../src/hooks/useAuth';
+import * as authService from '../services/authService';
+import { useAuth } from '../hooks/useAuth';
 
 const initialForm = {
   name: '',

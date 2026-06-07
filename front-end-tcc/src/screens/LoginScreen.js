@@ -20,9 +20,9 @@ import LoadingOverlay from '../components/LoadingOverlay';
 import LogoMark from '../components/LogoMark';
 import PrimaryButton from '../components/PrimaryButton';
 import { colors } from '../theme/colors';
-import { useAuth } from '../src/hooks/useAuth';
-import { loginSchema } from '../src/validation/loginSchema';
-import * as authService from '../src/services/authService';
+import { useAuth } from '../hooks/useAuth';
+import { loginSchema } from '../validation/loginSchema';
+import * as authService from '../services/authService';
 
 const getLoginErrorMessage = (error) => {
   if (error?.message === 'AUTH_TOKEN_NOT_FOUND') {

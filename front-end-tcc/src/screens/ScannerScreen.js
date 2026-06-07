@@ -19,8 +19,8 @@ import Header from '../components/Header';
 import StatsCard from '../components/StatsCard';
 import StatusBadge from '../components/StatusBadge';
 import WeeklyGoalCard from '../components/WeeklyGoalCard';
-import { useAuth } from '../src/hooks/useAuth';
-import { useScanner } from '../src/hooks/useScanner';
+import { useAuth } from '../hooks/useAuth';
+import { useScanner } from '../hooks/useScanner';
 import { colors } from '../theme/colors';
 
 const SCANNER_TABS = [

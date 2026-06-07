@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from api.v1.schemas.auth import Token, UserCreate, UserResponse
+from api.v1.schemas.auth import PasswordResetRequest, Token, UserCreate, UserResponse
 from database import get_db
 from models import User
 from services.auth_service import create_access_token, generate_username, hash_password, verify_password
@@ -93,3 +93,20 @@ def login_for_access_token(
     )
 
     return Token(access_token=access_token, token_type="bearer")
+
+
+@router.post("/reset-password")
+def reset_password(payload: PasswordResetRequest, db: Session = Depends(get_db)):
+    email = payload.email.lower()
+    user = db.query(User).filter(User.email == email, User.cpf == payload.cpf).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found with the provided email and CPF",
+        )
+
+    user.password_hash = hash_password(payload.new_password)
+    db.commit()
+
+    return {"message": "Password updated successfully"}

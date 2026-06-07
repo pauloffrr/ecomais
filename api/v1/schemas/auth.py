@@ -74,6 +74,33 @@ class UserCreate(BaseModel):
         return value
 
 
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+    cpf: str = Field(..., description="CPF cadastrado")
+    new_password: str = Field(..., min_length=8, description="Nova senha com letras e numeros")
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator("cpf")
+    @classmethod
+    def validate_cpf(cls, value: str) -> str:
+        cpf_digits = _normalize_digits(value)
+        if len(cpf_digits) != 11:
+            raise ValueError("CPF must contain exactly 11 digits")
+        if not _is_valid_cpf(cpf_digits):
+            raise ValueError("CPF is invalid")
+        return cpf_digits
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        has_letter = bool(re.search(r"[A-Za-z]", value))
+        has_number = bool(re.search(r"\d", value))
+        if not has_letter or not has_number:
+            raise ValueError("Password must contain both letters and numbers")
+        return value
+
+
 class UserResponse(BaseModel):
     id: int
     username: str

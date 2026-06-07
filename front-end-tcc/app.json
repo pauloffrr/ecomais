@@ -20,7 +20,7 @@
       "package": "com.ecotech.app"
     },
     "extra": {
-      "apiBaseUrl": "http://192.168.1.5:8001/v1"
+      "apiBaseUrl": "http://192.168.1.5:8000/v1"
     },
     "plugins": [
       "expo-font",

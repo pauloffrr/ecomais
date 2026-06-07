@@ -15,11 +15,11 @@ import ActivityCard from '../components/ActivityCard';
 import FilterButton from '../components/FilterButton';
 import FloatingTabBar from '../components/FloatingTabBar';
 import Header from '../components/Header';
-import ProgressCard from '../components/ProgressCard';
-import { useDiscards } from '../src/hooks/useDiscards';
-import { useMaterials } from '../src/hooks/useMaterials';
-import { useRewards } from '../src/hooks/useRewards';
-import { useUser } from '../src/hooks/useUser';
+import HistoryProgressCard from '../components/HistoryProgressCard';
+import { useDiscards } from '../hooks/useDiscards';
+import { useMaterials } from '../hooks/useMaterials';
+import { useRewards } from '../hooks/useRewards';
+import { useUser } from '../hooks/useUser';
 import { colors } from '../theme/colors';
 
 const HISTORY_TABS = [
@@ -366,7 +366,7 @@ export default function HistoryScreen({ navigation }) {
       />
 
       <View style={styles.progressWrapper}>
-        <ProgressCard summary={summary} />
+        <HistoryProgressCard summary={summary} />
       </View>
 
       <StatsGrid stats={stats} />

@@ -7,7 +7,7 @@ import { BackHeader } from '../components/ScreenHeader';
 import SupportCard from '../components/SupportCard';
 import TextInputField from '../components/TextInputField';
 import { supportData } from '../mocks/profileData';
-import { api } from '../services/api';
+import * as supportService from '../services/supportService';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 
@@ -30,10 +30,20 @@ export default function SupportCenterScreen({ navigation }) {
     }
 
     setSending(true);
-    await api.sendSupportMessage(form);
-    setSending(false);
-    setForm({ name: '', email: '', message: '' });
-    Alert.alert('Message sent', 'Your support request is ready for future API delivery.');
+
+    try {
+      await supportService.sendSupportMessage({
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        message: form.message.trim(),
+      });
+      setForm({ name: '', email: '', message: '' });
+      Alert.alert('Mensagem enviada', 'Sua solicitacao foi enviada para o suporte.');
+    } catch {
+      Alert.alert('Nao foi possivel enviar', 'Verifique sua conexao e tente novamente.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (

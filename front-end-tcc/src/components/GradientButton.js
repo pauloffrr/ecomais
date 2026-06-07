@@ -1,9 +1,9 @@
 import { useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Text } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients } from '../theme/colors';
 
-export default function GradientButton({ title, onPress, disabled = false, style }) {
+export default function GradientButton({ title, icon, onPress, disabled = false, style }) {
   const scale = useRef(new Animated.Value(1)).current;
 
   const animate = (toValue) => {
@@ -27,7 +27,10 @@ export default function GradientButton({ title, onPress, disabled = false, style
         style={styles.pressable}
       >
         <LinearGradient colors={gradients.primary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.button}>
-          <Text style={styles.text}>{title}</Text>
+          <View style={styles.content}>
+            {icon ? <View style={styles.icon}>{icon}</View> : null}
+            <Text style={styles.text}>{title}</Text>
+          </View>
         </LinearGradient>
       </Pressable>
     </Animated.View>
@@ -52,6 +55,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 18,
+  },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  icon: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   text: {
     color: colors.white,
