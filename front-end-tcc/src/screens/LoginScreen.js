@@ -78,8 +78,6 @@ function Snackbar({ message, visible }) {
   );
 }
 
-const onlyDigits = (value) => value.replace(/\D/g, '');
-
 const validateResetForm = (form) => {
   const errors = {};
   if (!/^\S+@\S+\.\S+$/.test(form.email)) errors.email = 'Digite um e-mail valido.';

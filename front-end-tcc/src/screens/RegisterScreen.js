@@ -20,6 +20,7 @@ import { colors } from '../theme/colors';
 import * as authService from '../services/authService';
 import { useAuth } from '../hooks/useAuth';
 import { formatCpf, onlyCpfDigits } from '../utils/cpf';
+import { formatPhone, onlyPhoneDigits } from '../utils/phone';
 
 const initialForm = {
   name: '',
@@ -29,8 +30,6 @@ const initialForm = {
   password: '',
   confirmPassword: '',
 };
-
-const onlyDigits = (value) => value.replace(/\D/g, '');
 
 const isValidCpf = (value) => {
   const cpf = onlyCpfDigits(value);
@@ -92,7 +91,7 @@ export default function RegisterScreen({ navigation }) {
     if (form.name.trim().split(/\s+/).length < 2) nextErrors.name = 'Informe nome e sobrenome.';
     if (!/^\S+@\S+\.\S+$/.test(form.email)) nextErrors.email = 'Use um e-mail valido.';
     if (!isValidCpf(form.cpf)) nextErrors.cpf = 'Informe um CPF valido.';
-    if (onlyDigits(form.phone).length < 10) nextErrors.phone = 'Informe um telefone valido.';
+    if (onlyPhoneDigits(form.phone).length < 10) nextErrors.phone = 'Informe um telefone valido.';
     if (!passwordIsValid) {
       nextErrors.password = 'Complete os requisitos da senha.';
     }
@@ -122,7 +121,7 @@ export default function RegisterScreen({ navigation }) {
         full_name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
         cpf: onlyCpfDigits(form.cpf),
-        phone: onlyDigits(form.phone),
+        phone: onlyPhoneDigits(form.phone),
         password: form.password,
       });
 
@@ -192,7 +191,7 @@ export default function RegisterScreen({ navigation }) {
               <InputField
                 label="Telefone"
                 value={form.phone}
-                onChangeText={(value) => updateField('phone', value)}
+                onChangeText={(value) => updateField('phone', formatPhone(value))}
                 placeholder="(00) 00000-0000"
                 keyboardType="phone-pad"
                 textContentType="telephoneNumber"

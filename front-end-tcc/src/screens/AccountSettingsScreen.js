@@ -19,6 +19,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useUser } from '../hooks/useUser';
 import * as userService from '../services/userService';
 import { isAdminUser } from '../utils/userRole';
+import { formatPhone, onlyPhoneDigits } from '../utils/phone';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 
@@ -30,8 +31,6 @@ const getInitials = (name) => {
 
   return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
 };
-
-const normalizePhone = (value) => value.replace(/[^\d+]/g, '');
 
 const buildPasswordError = (password) => {
   const changingPassword = password.current || password.next || password.confirm;
@@ -57,7 +56,7 @@ export default function AccountSettingsScreen({ navigation }) {
     setProfile({
       fullName: user.full_name ?? '',
       email: user.email ?? '',
-      phone: user.phone ?? '',
+      phone: formatPhone(user.phone ?? ''),
     });
   }, [user]);
 
@@ -92,7 +91,7 @@ export default function AccountSettingsScreen({ navigation }) {
     try {
       const updatedUser = await userService.updateUser(userId, {
         full_name: profile.fullName.trim(),
-        phone: normalizePhone(profile.phone),
+        phone: onlyPhoneDigits(profile.phone),
       });
 
       await handlePasswordChange();
@@ -192,8 +191,8 @@ export default function AccountSettingsScreen({ navigation }) {
               <TextInputField
                 label="Telefone"
                 value={profile.phone}
-                onChangeText={(value) => updateProfile('phone', value)}
-                placeholder="+55 (11) 99999-9999"
+                onChangeText={(value) => updateProfile('phone', formatPhone(value))}
+                placeholder="(00) 00000-0000"
                 keyboardType="phone-pad"
                 editable={!loading && !saving}
               />
