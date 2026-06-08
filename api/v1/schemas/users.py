@@ -16,6 +16,20 @@ class UserAdminCreate(UserCreate):
     is_admin: bool = False
 
 
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8, description="Senha forte com letras e numeros")
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        has_letter = bool(re.search(r"[A-Za-z]", value))
+        has_number = bool(re.search(r"\d", value))
+        if not has_letter or not has_number:
+            raise ValueError("Password must contain both letters and numbers")
+        return value
+
+
 def _normalize_digits(value: str) -> str:
     return re.sub(r"\D", "", value or "")
 

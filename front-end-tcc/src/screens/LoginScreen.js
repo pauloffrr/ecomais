@@ -130,71 +130,92 @@ function ResetPasswordModal({ visible, loading, onClose, onSubmit }) {
     });
   };
 
-  return (
-    <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
+  const content = (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.modalKeyboard}
+    >
       <View style={styles.modalOverlay}>
         <View style={styles.modalCard}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Redefinir senha</Text>
-            <Pressable accessibilityRole="button" onPress={close} hitSlop={10} style={styles.closeButton}>
-              <X size={18} color={colors.muted} strokeWidth={2.2} />
-            </Pressable>
-          </View>
+          <ScrollView
+            contentContainerStyle={styles.modalContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Redefinir senha</Text>
+              <Pressable accessibilityRole="button" onPress={close} hitSlop={10} style={styles.closeButton}>
+                <X size={18} color={colors.muted} strokeWidth={2.2} />
+              </Pressable>
+            </View>
 
-          <Text style={styles.modalSubtitle}>
-            Informe o e-mail e CPF cadastrados para criar uma nova senha.
-          </Text>
+            <Text style={styles.modalSubtitle}>
+              Informe o e-mail e CPF cadastrados para criar uma nova senha.
+            </Text>
 
-          <InputField
-            label="E-mail"
-            value={form.email}
-            onChangeText={(value) => updateField('email', value)}
-            placeholder="Digite seu e-mail"
-            keyboardType="email-address"
-            textContentType="emailAddress"
-            autoComplete="email"
-            editable={!loading}
-            error={fieldError('email')}
-            icon={<Mail size={20} color={colors.primary} strokeWidth={1.9} />}
-          />
-          <InputField
-            label="CPF"
-            value={form.cpf}
-            onChangeText={(value) => updateField('cpf', formatCpf(value))}
-            placeholder="000.000.000-00"
-            keyboardType="number-pad"
-            editable={!loading}
-            error={fieldError('cpf')}
-            icon={<Fingerprint size={20} color={colors.primary} strokeWidth={1.9} />}
-          />
-          <InputField
-            label="Nova senha"
-            value={form.newPassword}
-            onChangeText={(value) => updateField('newPassword', value)}
-            placeholder="8+ caracteres com letras e numeros"
-            secureTextEntry
-            textContentType="newPassword"
-            autoComplete="password-new"
-            editable={!loading}
-            error={fieldError('newPassword')}
-            icon={<Lock size={20} color={colors.primary} strokeWidth={1.9} />}
-          />
-          <InputField
-            label="Confirmar senha"
-            value={form.confirmPassword}
-            onChangeText={(value) => updateField('confirmPassword', value)}
-            placeholder="Repita a nova senha"
-            secureTextEntry
-            textContentType="newPassword"
-            autoComplete="password-new"
-            editable={!loading}
-            error={fieldError('confirmPassword')}
-            icon={<Lock size={20} color={colors.primary} strokeWidth={1.9} />}
-          />
+            <InputField
+              label="E-mail"
+              value={form.email}
+              onChangeText={(value) => updateField('email', value)}
+              placeholder="Digite seu e-mail"
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              autoComplete="email"
+              editable={!loading}
+              error={fieldError('email')}
+              icon={<Mail size={20} color={colors.primary} strokeWidth={1.9} />}
+            />
+            <InputField
+              label="CPF"
+              value={form.cpf}
+              onChangeText={(value) => updateField('cpf', formatCpf(value))}
+              placeholder="000.000.000-00"
+              keyboardType="number-pad"
+              editable={!loading}
+              error={fieldError('cpf')}
+              icon={<Fingerprint size={20} color={colors.primary} strokeWidth={1.9} />}
+            />
+            <InputField
+              label="Nova senha"
+              value={form.newPassword}
+              onChangeText={(value) => updateField('newPassword', value)}
+              placeholder="8+ caracteres com letras e numeros"
+              secureTextEntry
+              textContentType="newPassword"
+              autoComplete="password-new"
+              editable={!loading}
+              error={fieldError('newPassword')}
+              icon={<Lock size={20} color={colors.primary} strokeWidth={1.9} />}
+            />
+            <InputField
+              label="Confirmar senha"
+              value={form.confirmPassword}
+              onChangeText={(value) => updateField('confirmPassword', value)}
+              placeholder="Repita a nova senha"
+              secureTextEntry
+              textContentType="newPassword"
+              autoComplete="password-new"
+              editable={!loading}
+              error={fieldError('confirmPassword')}
+              icon={<Lock size={20} color={colors.primary} strokeWidth={1.9} />}
+            />
 
-          <PrimaryButton title="Alterar senha" onPress={submit} loading={loading} />
+            <PrimaryButton title="Alterar senha" onPress={submit} loading={loading} />
+          </ScrollView>
         </View>
       </View>
+    </KeyboardAvoidingView>
+  );
+
+  if (Platform.OS === 'web') {
+    if (!visible) return null;
+
+    return <View style={styles.webModalLayer}>{content}</View>;
+  }
+
+  return (
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
+      {content}
     </Modal>
   );
 }
@@ -435,19 +456,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(15, 23, 42, 0.35)',
-    padding: 22,
+    padding: 16,
+  },
+  modalKeyboard: {
+    flex: 1,
   },
   modalCard: {
     width: '100%',
     maxWidth: 420,
+    maxHeight: '100%',
     borderRadius: 24,
     backgroundColor: colors.surface,
-    padding: 18,
     shadowColor: colors.shadow,
     shadowOpacity: 0.18,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 12 },
     elevation: 10,
+    overflow: 'hidden',
+  },
+  modalContent: {
+    padding: 18,
+  },
+  webModalLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
   },
   modalHeader: {
     flexDirection: 'row',
