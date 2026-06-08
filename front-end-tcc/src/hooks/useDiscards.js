@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { isCanceledRequest } from '../api/api';
 import * as discardService from '../services/discardService';
 import { useAuth } from './useAuth';
 
-const shouldRetry = (error) => !error?.response;
+const shouldRetry = (error) => !error?.response && !isCanceledRequest(error);
 
 export const useDiscards = ({ pageSize = 1000 } = {}) => {
   const { logout, token } = useAuth();
@@ -31,6 +32,8 @@ export const useDiscards = ({ pageSize = 1000 } = {}) => {
         setError(null);
         return items;
       } catch (requestError) {
+        if (isCanceledRequest(requestError)) return [];
+
         if (requestError?.isSessionExpired || requestError?.response?.status === 401) {
           await logout();
           return [];
@@ -69,6 +72,8 @@ export const useDiscards = ({ pageSize = 1000 } = {}) => {
       setError(null);
       return items;
     } catch (requestError) {
+      if (isCanceledRequest(requestError)) return [];
+
       if (requestError?.isSessionExpired || requestError?.response?.status === 401) {
         await logout();
         return [];

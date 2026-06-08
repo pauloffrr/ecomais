@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { isCanceledRequest } from '../api/api';
 import * as sessionService from '../services/sessionService';
 import { useAuth } from './useAuth';
 
@@ -52,6 +53,8 @@ export const useSession = () => {
         setSession(data);
         return data;
       } catch (requestError) {
+        if (isCanceledRequest(requestError)) return null;
+
         if (requestError?.isSessionExpired || requestError?.response?.status === 401) {
           await logout();
         }

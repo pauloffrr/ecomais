@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { isCanceledRequest } from '../api/api';
 import * as userService from '../services/userService';
 import { useAuth } from './useAuth';
 
-const shouldRetry = (error) => !error?.response;
+const shouldRetry = (error) => !error?.response && !isCanceledRequest(error);
 
 export const useUser = () => {
   const { logout, updateUser, userId } = useAuth();
@@ -29,6 +30,8 @@ export const useUser = () => {
         await updateUser(data);
         return data;
       } catch (requestError) {
+        if (isCanceledRequest(requestError)) return null;
+
         if (requestError?.isSessionExpired || requestError?.response?.status === 401) {
           await logout();
           return null;

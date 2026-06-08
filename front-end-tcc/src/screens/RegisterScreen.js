@@ -18,6 +18,7 @@ import PrimaryButton from '../components/PrimaryButton';
 import { colors } from '../theme/colors';
 import * as authService from '../services/authService';
 import { useAuth } from '../hooks/useAuth';
+import { formatCpf, onlyCpfDigits } from '../utils/cpf';
 
 const initialForm = {
   name: '',
@@ -54,7 +55,7 @@ const getPasswordRules = (password) => [
 ];
 
 const isValidCpf = (value) => {
-  const cpf = onlyDigits(value);
+  const cpf = onlyCpfDigits(value);
 
   if (cpf.length !== 11 || cpf === cpf[0].repeat(11)) return false;
 
@@ -142,7 +143,7 @@ export default function RegisterScreen({ navigation }) {
       await authService.register({
         full_name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
-        cpf: onlyDigits(form.cpf),
+        cpf: onlyCpfDigits(form.cpf),
         phone: onlyDigits(form.phone),
         password: form.password,
       });
@@ -203,7 +204,7 @@ export default function RegisterScreen({ navigation }) {
               <InputField
                 label="CPF"
                 value={form.cpf}
-                onChangeText={(value) => updateField('cpf', value)}
+                onChangeText={(value) => updateField('cpf', formatCpf(value))}
                 placeholder="000.000.000-00"
                 keyboardType="number-pad"
                 editable={!loading}

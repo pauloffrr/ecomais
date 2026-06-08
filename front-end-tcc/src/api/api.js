@@ -3,6 +3,9 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import * as storageService from '../services/storageService';
 
+const pendingRequestControllers = new Set();
+let requestGeneration = 0;
+
 const extra =
   Constants.expoConfig?.extra ??
   Constants.manifest2?.extra?.expoClient?.extra ??
@@ -54,8 +57,30 @@ const api = axios.create({
   },
 });
 
+export const cancelPendingRequests = () => {
+  requestGeneration += 1;
+
+  pendingRequestControllers.forEach((controller) => controller.abort());
+  pendingRequestControllers.clear();
+};
+
+export const isCanceledRequest = (error) =>
+  axios.isCancel(error) || error?.code === 'ERR_CANCELED';
+
 api.interceptors.request.use(async (config) => {
+  const generation = requestGeneration;
+  const controller = new AbortController();
+
+  config.signal = controller.signal;
+  config.pendingRequestController = controller;
+  pendingRequestControllers.add(controller);
+
   const token = await storageService.getToken();
+
+  if (generation !== requestGeneration) {
+    controller.abort();
+    throw new axios.CanceledError('Request canceled because the session ended.');
+  }
 
   if (token) {
     config.headers = {
@@ -68,8 +93,13 @@ api.interceptors.request.use(async (config) => {
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    pendingRequestControllers.delete(response.config?.pendingRequestController);
+    return response;
+  },
   async (error) => {
+    pendingRequestControllers.delete(error?.config?.pendingRequestController);
+
     if (error?.response?.status === 401) {
       error.isSessionExpired = true;
       await storageService.clearAuthStorage();

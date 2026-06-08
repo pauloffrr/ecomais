@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
-import api from '../api/api';
+import api, { cancelPendingRequests } from '../api/api';
 import * as authService from '../services/authService';
 import * as storageService from '../services/storageService';
 import { getUserIdFromToken } from '../utils/jwt';
@@ -67,12 +67,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = useCallback(async () => {
-    await authService.logout();
-    await storageService.clearAuthStorage();
+    cancelPendingRequests();
     setToken(null);
     setUser(null);
     setUserId(null);
     setAuthorizationHeader(null);
+
+    await storageService.clearAuthStorage();
   }, []);
 
   const updateUser = useCallback(async (nextUser) => {

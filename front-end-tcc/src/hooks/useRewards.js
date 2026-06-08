@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { isCanceledRequest } from '../api/api';
 import * as rewardService from '../services/rewardService';
 import { useAuth } from './useAuth';
 
-const shouldRetry = (error) => !error?.response;
+const shouldRetry = (error) => !error?.response && !isCanceledRequest(error);
 
 export const useRewards = () => {
   const { logout, token } = useAuth();
@@ -30,6 +31,8 @@ export const useRewards = () => {
         setError(null);
         return items;
       } catch (requestError) {
+        if (isCanceledRequest(requestError)) return [];
+
         if (requestError?.isSessionExpired || requestError?.response?.status === 401) {
           await logout();
           return [];

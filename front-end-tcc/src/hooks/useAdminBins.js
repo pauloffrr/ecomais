@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { isCanceledRequest } from '../api/api';
 import * as adminService from '../services/adminService';
 import { useAuth } from './useAuth';
 
-const shouldRetry = (error) => !error?.response;
+const shouldRetry = (error) => !error?.response && !isCanceledRequest(error);
 
 export const useAdminBins = ({ enabled = true } = {}) => {
   const { logout, token } = useAuth();
@@ -29,6 +30,8 @@ export const useAdminBins = ({ enabled = true } = {}) => {
         setError(null);
         return data.items;
       } catch (requestError) {
+        if (isCanceledRequest(requestError)) return [];
+
         if (requestError?.isSessionExpired || requestError?.response?.status === 401) {
           await logout();
           return [];

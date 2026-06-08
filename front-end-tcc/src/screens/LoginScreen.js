@@ -23,6 +23,7 @@ import { colors } from '../theme/colors';
 import { useAuth } from '../hooks/useAuth';
 import { loginSchema } from '../validation/loginSchema';
 import * as authService from '../services/authService';
+import { formatCpf, onlyCpfDigits } from '../utils/cpf';
 
 const getLoginErrorMessage = (error) => {
   if (error?.message === 'AUTH_TOKEN_NOT_FOUND') {
@@ -84,7 +85,7 @@ const validateResetForm = (form) => {
   const hasNumber = /\d/.test(form.newPassword);
 
   if (!/^\S+@\S+\.\S+$/.test(form.email)) errors.email = 'Digite um e-mail valido.';
-  if (onlyDigits(form.cpf).length !== 11) errors.cpf = 'Digite o CPF cadastrado.';
+  if (onlyCpfDigits(form.cpf).length !== 11) errors.cpf = 'Digite o CPF cadastrado.';
   if (form.newPassword.length < 8 || !hasLetter || !hasNumber) {
     errors.newPassword = 'Use 8+ caracteres com letras e numeros.';
   }
@@ -124,7 +125,7 @@ function ResetPasswordModal({ visible, loading, onClose, onSubmit }) {
 
     onSubmit({
       email: form.email.trim().toLowerCase(),
-      cpf: onlyDigits(form.cpf),
+      cpf: onlyCpfDigits(form.cpf),
       newPassword: form.newPassword,
     });
   };
@@ -159,7 +160,7 @@ function ResetPasswordModal({ visible, loading, onClose, onSubmit }) {
           <InputField
             label="CPF"
             value={form.cpf}
-            onChangeText={(value) => updateField('cpf', value)}
+            onChangeText={(value) => updateField('cpf', formatCpf(value))}
             placeholder="000.000.000-00"
             keyboardType="number-pad"
             editable={!loading}

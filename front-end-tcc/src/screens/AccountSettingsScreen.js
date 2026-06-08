@@ -85,6 +85,7 @@ export default function AccountSettingsScreen({ navigation }) {
       return;
     }
 
+    const changingPassword = Boolean(password.current || password.next || password.confirm);
     setSaving(true);
 
     try {
@@ -97,7 +98,17 @@ export default function AccountSettingsScreen({ navigation }) {
       await updateAuthUser(updatedUser);
       await refetch({ refresh: true });
       setPassword({ current: '', next: '', confirm: '' });
-      Alert.alert('Alteracoes salvas', 'Suas configurações foram atualizadas.');
+
+      const successTitle = changingPassword ? 'Senha alterada' : 'Alteracoes salvas';
+      const successMessage = changingPassword
+        ? 'Sua senha foi alterada com sucesso.'
+        : 'Suas configurações foram atualizadas.';
+
+      if (Platform.OS === 'web') {
+        globalThis.alert(successMessage);
+      } else {
+        Alert.alert(successTitle, successMessage);
+      }
     } catch (error) {
       Alert.alert('Nao foi possivel salvar', error?.message || 'Tente novamente em alguns instantes.');
     } finally {
@@ -105,7 +116,17 @@ export default function AccountSettingsScreen({ navigation }) {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    if (Platform.OS === 'web') {
+      const confirmed = globalThis.confirm('Deseja encerrar sua sessao no Eco+?');
+
+      if (confirmed) {
+        void logout();
+      }
+
+      return;
+    }
+
     Alert.alert('Sair da conta', 'Deseja encerrar sua sessao no Eco+?', [
       {
         text: 'Cancelar',
@@ -114,7 +135,9 @@ export default function AccountSettingsScreen({ navigation }) {
       {
         text: 'Sair',
         style: 'destructive',
-        onPress: logout,
+        onPress: () => {
+          void logout();
+        },
       },
     ]);
   };
