@@ -93,6 +93,22 @@ class UserUpdate(BaseModel):
         return value
 
 
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(..., min_length=1, description="Senha atual")
+    new_password: str = Field(..., min_length=8, description="Nova senha com letras e numeros")
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        has_letter = bool(re.search(r"[A-Za-z]", value))
+        has_number = bool(re.search(r"\d", value))
+        if not has_letter or not has_number:
+            raise ValueError("Password must contain both letters and numbers")
+        return value
+
+
 class UserListResponse(BaseModel):
     users: list[UserResponse]
     total: int

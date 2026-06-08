@@ -11,10 +11,10 @@ from sqlalchemy.orm import Session
 
 from api.dependencies import get_current_active_user, get_current_admin_user
 from api.v1.schemas.auth import UserResponse
-from api.v1.schemas.users import UserAdminCreate, UserListResponse, UserUpdate
+from api.v1.schemas.users import PasswordChangeRequest, UserAdminCreate, UserListResponse, UserUpdate
 from database import get_db
 from models import AuditLog, User
-from services.auth_service import generate_username, hash_password
+from services.auth_service import generate_username, hash_password, verify_password
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -170,6 +170,39 @@ def update_user(
         )
 
     return UserResponse.model_validate(user)
+
+
+@router.put("/me/password")
+def change_current_user_password(
+    payload: PasswordChangeRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+
+    if verify_password(payload.new_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from the current password",
+        )
+
+    current_user.password_hash = hash_password(payload.new_password)
+
+    audit_log = AuditLog(
+        event_type="user_password_changed",
+        entity_type="user",
+        entity_id=current_user.id,
+        details=json.dumps({"action_by_user_id": current_user.id, "action_by_email": current_user.email}),
+    )
+    db.add(audit_log)
+    db.commit()
+    db.refresh(current_user)
+
+    return {"message": "Password updated successfully"}
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
