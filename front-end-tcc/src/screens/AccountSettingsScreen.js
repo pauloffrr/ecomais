@@ -37,7 +37,10 @@ const buildPasswordError = (password) => {
 
   if (!changingPassword) return '';
   if (!password.current || !password.next || !password.confirm) return 'Preencha todos os campos de senha.';
-  if (password.next.length < 6) return 'A nova senha deve ter no minimo 6 caracteres.';
+  if (password.next.length < 8) return 'A nova senha deve ter no minimo 8 caracteres.';
+  if (!/[A-Za-z]/.test(password.next) || !/\d/.test(password.next)) {
+    return 'A nova senha deve conter letras e numeros.';
+  }
   if (password.next !== password.confirm) return 'A confirmacao deve ser igual a nova senha.';
 
   return '';
@@ -110,7 +113,19 @@ export default function AccountSettingsScreen({ navigation }) {
         Alert.alert(successTitle, successMessage);
       }
     } catch (error) {
-      Alert.alert('Nao foi possivel salvar', error?.message || 'Tente novamente em alguns instantes.');
+      const detail = error?.response?.data?.detail;
+      const errorMessage =
+        detail === 'Current password is incorrect'
+          ? 'A senha atual esta incorreta.'
+          : detail === 'New password must be different from the current password'
+            ? 'A nova senha deve ser diferente da senha atual.'
+            : error?.message || 'Tente novamente em alguns instantes.';
+
+      if (Platform.OS === 'web') {
+        globalThis.alert(errorMessage);
+      } else {
+        Alert.alert('Nao foi possivel salvar', errorMessage);
+      }
     } finally {
       setSaving(false);
     }
@@ -200,7 +215,7 @@ export default function AccountSettingsScreen({ navigation }) {
                 label="Nova senha"
                 value={password.next}
                 onChangeText={(value) => updatePassword('next', value)}
-                placeholder="Minimo de 6 caracteres"
+                placeholder="Minimo de 8 caracteres, letras e numeros"
                 secureTextEntry
                 editable={!saving}
               />

@@ -10,4 +10,7 @@ export const updateUser = async (userId, payload) => {
   return response.data;
 };
 
-export const changePassword = async () => null;
+export const changePassword = async (payload) => {
+  const response = await api.put('/users/me/password', payload);
+  return response.data;
+};
