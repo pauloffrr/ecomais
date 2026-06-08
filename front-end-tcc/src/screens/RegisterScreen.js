@@ -9,11 +9,12 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Check, Fingerprint, Lock, Mail, Phone, UserRound, X } from 'lucide-react-native';
+import { Check, Fingerprint, Lock, Mail, Phone, UserRound } from 'lucide-react-native';
 import EcoBackground from '../components/EcoBackground';
 import InputField from '../components/InputField';
 import LoadingOverlay from '../components/LoadingOverlay';
 import LogoMark from '../components/LogoMark';
+import PasswordRequirements, { getPasswordRules } from '../components/PasswordRequirements';
 import PrimaryButton from '../components/PrimaryButton';
 import { colors } from '../theme/colors';
 import * as authService from '../services/authService';
@@ -30,29 +31,6 @@ const initialForm = {
 };
 
 const onlyDigits = (value) => value.replace(/\D/g, '');
-
-const getPasswordRules = (password) => [
-  {
-    key: 'length',
-    label: 'Minimo de 8 caracteres',
-    valid: password.length >= 8,
-  },
-  {
-    key: 'uppercase',
-    label: 'Uma letra maiuscula',
-    valid: /[A-Z]/.test(password),
-  },
-  {
-    key: 'lowercase',
-    label: 'Uma letra minuscula',
-    valid: /[a-z]/.test(password),
-  },
-  {
-    key: 'number',
-    label: 'Um numero',
-    valid: /\d/.test(password),
-  },
-];
 
 const isValidCpf = (value) => {
   const cpf = onlyCpfDigits(value);
@@ -234,32 +212,7 @@ export default function RegisterScreen({ navigation }) {
                 error={fieldError('password')}
                 icon={<Lock size={20} color={colors.primary} strokeWidth={1.9} />}
               />
-              <View style={styles.passwordRules}>
-                {passwordRules.map((rule) => (
-                  <View key={rule.key} style={styles.passwordRule}>
-                    <View
-                      style={[
-                        styles.passwordRuleIcon,
-                        rule.valid ? styles.passwordRuleIconValid : styles.passwordRuleIconInvalid,
-                      ]}
-                    >
-                      {rule.valid ? (
-                        <Check size={12} color={colors.white} strokeWidth={3} />
-                      ) : (
-                        <X size={12} color={colors.white} strokeWidth={3} />
-                      )}
-                    </View>
-                    <Text
-                      style={[
-                        styles.passwordRuleText,
-                        rule.valid ? styles.passwordRuleTextValid : styles.passwordRuleTextInvalid,
-                      ]}
-                    >
-                      {rule.label}
-                    </Text>
-                  </View>
-                ))}
-              </View>
+              <PasswordRequirements password={form.password} />
               <InputField
                 label="Confirmar senha"
                 value={form.confirmPassword}
@@ -353,43 +306,6 @@ const styles = StyleSheet.create({
   },
   form: {
     width: '100%',
-  },
-  passwordRules: {
-    gap: 8,
-    marginTop: -4,
-    marginBottom: 14,
-    paddingHorizontal: 2,
-  },
-  passwordRule: {
-    minHeight: 22,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  passwordRuleIcon: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  passwordRuleIconValid: {
-    backgroundColor: colors.primary,
-  },
-  passwordRuleIconInvalid: {
-    backgroundColor: colors.danger,
-  },
-  passwordRuleText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 17,
-    fontWeight: '700',
-  },
-  passwordRuleTextValid: {
-    color: colors.primary,
-  },
-  passwordRuleTextInvalid: {
-    color: colors.muted,
   },
   termsRow: {
     flexDirection: 'row',

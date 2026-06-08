@@ -18,6 +18,7 @@ import EcoBackground from '../components/EcoBackground';
 import InputField from '../components/InputField';
 import LoadingOverlay from '../components/LoadingOverlay';
 import LogoMark from '../components/LogoMark';
+import PasswordRequirements, { isPasswordValid } from '../components/PasswordRequirements';
 import PrimaryButton from '../components/PrimaryButton';
 import { colors } from '../theme/colors';
 import { useAuth } from '../hooks/useAuth';
@@ -81,13 +82,10 @@ const onlyDigits = (value) => value.replace(/\D/g, '');
 
 const validateResetForm = (form) => {
   const errors = {};
-  const hasLetter = /[A-Za-z]/.test(form.newPassword);
-  const hasNumber = /\d/.test(form.newPassword);
-
   if (!/^\S+@\S+\.\S+$/.test(form.email)) errors.email = 'Digite um e-mail valido.';
   if (onlyCpfDigits(form.cpf).length !== 11) errors.cpf = 'Digite o CPF cadastrado.';
-  if (form.newPassword.length < 8 || !hasLetter || !hasNumber) {
-    errors.newPassword = 'Use 8+ caracteres com letras e numeros.';
+  if (!isPasswordValid(form.newPassword)) {
+    errors.newPassword = 'Complete os requisitos da senha.';
   }
   if (form.confirmPassword !== form.newPassword) {
     errors.confirmPassword = 'As senhas precisam ser iguais.';
@@ -187,6 +185,7 @@ function ResetPasswordModal({ visible, loading, onClose, onSubmit }) {
               error={fieldError('newPassword')}
               icon={<Lock size={20} color={colors.primary} strokeWidth={1.9} />}
             />
+            <PasswordRequirements password={form.newPassword} />
             <InputField
               label="Confirmar senha"
               value={form.confirmPassword}

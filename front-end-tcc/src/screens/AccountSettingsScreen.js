@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { LogOut, ShieldCheck } from 'lucide-react-native';
 import GradientButton from '../components/GradientButton';
+import PasswordRequirements, { isPasswordValid } from '../components/PasswordRequirements';
 import { BackHeader } from '../components/ScreenHeader';
 import TextInputField from '../components/TextInputField';
 import { useAuth } from '../hooks/useAuth';
@@ -37,10 +38,7 @@ const buildPasswordError = (password) => {
 
   if (!changingPassword) return '';
   if (!password.current || !password.next || !password.confirm) return 'Preencha todos os campos de senha.';
-  if (password.next.length < 8) return 'A nova senha deve ter no minimo 8 caracteres.';
-  if (!/[A-Za-z]/.test(password.next) || !/\d/.test(password.next)) {
-    return 'A nova senha deve conter letras e numeros.';
-  }
+  if (!isPasswordValid(password.next)) return 'Complete os requisitos da nova senha.';
   if (password.next !== password.confirm) return 'A confirmacao deve ser igual a nova senha.';
 
   return '';
@@ -219,6 +217,7 @@ export default function AccountSettingsScreen({ navigation }) {
                 secureTextEntry
                 editable={!saving}
               />
+              <PasswordRequirements password={password.next} />
               <TextInputField
                 label="Confirmar senha"
                 value={password.confirm}
