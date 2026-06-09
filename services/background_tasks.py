@@ -15,6 +15,14 @@ from sqlalchemy.orm import Session
 from PIL import Image
 import io
 
+# --- INTEGRAÇÃO YOLOv8 ---
+try:
+    from ultralytics import YOLO
+    # Carrega o modelo globalmente para alta performance (use o caminho do seu modelo treinado via .env depois)
+    yolo_model = YOLO(getattr(settings, "AI_MODEL_PATH", "yolov8n-cls.pt"))
+except ImportError:
+    yolo_model = None
+
 from models import Discard, User, Reward, ActiveSession, SessionStatus, Material
 from config import get_settings
 
@@ -92,9 +100,8 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
             logger.error(f"Discard {discard_id} not found")
             return
 
-        # TODO: Replace with actual AI model inference
-        # For MVP, using mock classification (85% confidence, plastic_pet)
-        ai_result = mock_ai_classification(image_path)
+        # Executa a inferência real do YOLOv8 na imagem salva
+        ai_result = run_ai_classification(image_path)
 
         # Update discard with AI results
         discard.ai_classification = ai_result["class_name"]
@@ -109,6 +116,8 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
             logger.warning(f"No material found for class {ai_result['class_name']}")
             discard.vision_validated = False
             discard.validation_errors = "Material class not found in database"
+            discard.is_validated = True  # Tira do status Pendente (Recusado)
+            discard.validated_at = datetime.utcnow()
             db.commit()
             return
 
@@ -120,6 +129,8 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
             )
             discard.vision_validated = False
             discard.validation_errors = f"AI confidence too low: {ai_result['confidence']}"
+            discard.is_validated = True  # Tira do status Pendente (Recusado)
+            discard.validated_at = datetime.utcnow()
 
             # Flag for manual review if close to threshold
             if ai_result["confidence"] >= settings.MANUAL_REVIEW_CONFIDENCE_THRESHOLD:
@@ -187,51 +198,30 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
             discard = db.query(Discard).filter(Discard.id == discard_id).first()
             if discard:
                 discard.validation_errors = f"AI processing error: {str(e)}"
+                discard.is_validated = True # Tira do status Pendente (Recusado por erro)
+                discard.validated_at = datetime.utcnow()
                 db.commit()
         except:
             pass
 
 
-def mock_ai_classification(image_path: str) -> dict:
+def run_ai_classification(image_path: str) -> dict:
     """
-    Mock AI classification for MVP development.
-    Replace this with actual YOLOv8 model inference.
+    Run actual YOLOv8 model inference on the discard image.
 
     Returns:
         dict: {"class_name": str, "confidence": float}
     """
-    # TODO: Replace with real YOLOv8 model
-    # Example implementation:
-    #
-    # from ultralytics import YOLO
-    # import cv2
-    #
-    # # Load model (do this once at startup, not per request!)
-    # model = YOLO(settings.AI_MODEL_PATH)  # e.g., 'ml/models/recyclable_classifier.pt'
-    #
-    # # Read and preprocess image
-    # image = cv2.imread(image_path)
-    # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    #
-    # # Run inference
-    # results = model(image, verbose=False)
-    #
-    # # Extract top prediction
-    # probs = results[0].probs  # Classification probabilities
-    # class_idx = probs.top1  # Index of top class
-    # confidence = float(probs.top1conf)  # Confidence of top class
-    # class_name = model.names[class_idx]  # Class name
-    #
-    # return {
-    #     "class_name": class_name,
-    #     "confidence": confidence
-    # }
-
-    # For now, return mock data (85% confidence PET plastic)
-    logger.warning("Using MOCK AI classification - replace with YOLOv8 model!")
+    if yolo_model is None:
+        logger.warning("YOLOv8 nao carregado! Retornando classe fallback.")
+        return {"class_name": "plastic_pet", "confidence": 0.85}
+        
+    results = yolo_model(image_path, verbose=False)
+    probs = results[0].probs
+    
     return {
-        "class_name": "plastic_pet",
-        "confidence": 0.85
+        "class_name": yolo_model.names[probs.top1],
+        "confidence": float(probs.top1conf)
     }
 
 

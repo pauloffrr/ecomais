@@ -24,7 +24,7 @@ redis==5.0.8                       # Redis client / broker
 Pillow==11.0.0                    # Image manipulation
 numpy==1.26.3
 opencv-python==4.9.0.80           # Computer vision
-# ultralytics==8.1.0              # YOLOv8 (uncomment when training AI model)
+ultralytics==8.1.0              # YOLOv8 (uncomment when training AI model)
 
 
 # Cloud Storage (optional)
