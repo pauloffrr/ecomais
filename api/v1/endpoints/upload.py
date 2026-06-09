@@ -154,24 +154,24 @@ async def upload_discard(
         if not is_valid or not bin:
             raise HTTPException(status_code=401, detail=error_msg or "Authentication failed")
 
-        # ===== STEP 2: VALIDATE ACTIVE SESSION =====
-        # Use the session token sent by the ESP32 instead of relying on the latest row.
+        # ===== STEP 2: O "MATCH" (VINCULANDO HARDWARE AO USUÁRIO) =====
+        # O ESP32 não envia mais o token. O Backend atua como "Casamenteiro",
+        # buscando a sessão ativa mais recente usando apenas o ID da lixeira (bin.id).
         is_valid, session, error_msg = validate_session(
-            session_token=data.session_token,
+            session_token=getattr(data, "session_token", None), # Será None, pois o ESP32 não envia mais
             bin_id=bin.id,
             db=db,
         )
 
         if not is_valid or not session:
             logger.warning(
-                "Session validation failed for bin %s and token %s: %s",
+                "Falha ao vincular descarte à sessão na lixeira %s: %s",
                 x_bin_id,
-                data.session_token,
                 error_msg,
             )
             raise HTTPException(
                 status_code=403,
-                detail=error_msg or "Sessao invalida, expirada ou nao encontrada",
+                detail=error_msg or "Nenhuma sessão ativa encontrada. Escaneie o QR Code no app primeiro."
             )
 
         # ===== STEP 3: VALIDATE WEIGHT =====

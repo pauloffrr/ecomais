@@ -9,7 +9,7 @@ from typing import Optional
 class BinUploadRequest(BaseModel):
     """Request schema for /v1/bin/upload endpoint"""
 
-    session_token: str = Field(..., description="Active session token from QR scan")
+    session_token: Optional[str] = Field(default=None, description="Active session token from QR scan")
     weight_grams: float = Field(..., gt=0, description="Weight measured by load cell (grams)")
     image: str = Field(..., description="Base64 encoded image from ESP32-CAM")
 

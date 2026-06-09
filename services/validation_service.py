@@ -21,7 +21,7 @@ settings = get_settings()
 
 
 def validate_session(
-    session_token: str,
+    session_token: Optional[str],
     bin_id: int,
     db: Session
 ) -> Tuple[bool, Optional[ActiveSession], str]:
@@ -40,13 +40,20 @@ def validate_session(
             - error_message: Error description if invalid
     """
     try:
-        # Find session by token
-        session = db.query(ActiveSession).filter(
-            ActiveSession.session_token == session_token
-        ).first()
+        if session_token:
+            # Find session by token
+            session = db.query(ActiveSession).filter(
+                ActiveSession.session_token == session_token
+            ).first()
+        else:
+            # Find latest active session by bin_id (O "Matchmaker" entre App e Hardware)
+            session = db.query(ActiveSession).filter(
+                ActiveSession.bin_id == bin_id,
+                ActiveSession.status == SessionStatus.ACTIVE
+            ).order_by(ActiveSession.id.desc()).first()
 
         if not session:
-            return False, None, "Session not found"
+            return False, None, "Nenhuma sessão ativa encontrada para esta lixeira. Escaneie o QR Code no app."
 
         # Check if session is for the correct bin
         if session.bin_id != bin_id:

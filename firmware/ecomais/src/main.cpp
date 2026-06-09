@@ -32,77 +32,6 @@ String generateHMAC(String payload, String key) {
   return hmacHex;
 }
 
-String extractJsonStringValue(const String& json, const char* key) {
-  String needle = String("\"") + key + "\":\"";
-  int start = json.indexOf(needle);
-  if (start < 0) {
-    return "";
-  }
-
-  start += needle.length();
-  int end = json.indexOf('"', start);
-  if (end < 0) {
-    return "";
-  }
-
-  return json.substring(start, end);
-}
-
-String loginAndCreateSession() {
-  HTTPClient http;
-
-  Serial.println("Tentando autenticar usuario de teste...");
-  http.begin(LOGIN_URL);
-  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-
-  String loginBody = String("username=") + TEST_USERNAME + "&password=" + TEST_PASSWORD;
-  int loginResponseCode = http.POST(loginBody);
-  String loginResponse = http.getString();
-  http.end();
-
-  if (loginResponseCode != 200) {
-    Serial.print("Falha no login. HTTP ");
-    Serial.println(loginResponseCode);
-    Serial.println(loginResponse);
-    return "";
-  }
-
-  String accessToken = extractJsonStringValue(loginResponse, "access_token");
-  if (accessToken.length() == 0) {
-    Serial.println("Nao foi possivel extrair access_token da resposta de login.");
-    Serial.println(loginResponse);
-    return "";
-  }
-
-  Serial.println("✅ Login OK. Criando sessao real...");
-  http.begin(SESSION_START_URL);
-  http.addHeader("Content-Type", "application/json");
-  http.addHeader("Authorization", String("Bearer ") + accessToken);
-
-  String sessionBody = String("{\"bin_code\":\"") + BIN_ID + "\"}";
-  int sessionResponseCode = http.POST(sessionBody);
-  String sessionResponse = http.getString();
-  http.end();
-
-  if (sessionResponseCode != 201) {
-    Serial.print("Falha ao criar sessao. HTTP ");
-    Serial.println(sessionResponseCode);
-    Serial.println(sessionResponse);
-    return "";
-  }
-
-  String sessionToken = extractJsonStringValue(sessionResponse, "session_token");
-  if (sessionToken.length() == 0) {
-    Serial.println("Nao foi possivel extrair session_token da resposta de sessao.");
-    Serial.println(sessionResponse);
-    return "";
-  }
-
-  Serial.print("✅ Sessao real criada. Token: ");
-  Serial.println(sessionToken);
-  return sessionToken;
-}
-
 void setup() {
   Serial.begin(115200);
   delay(1000); 
@@ -142,13 +71,11 @@ void setup() {
 
 void loop() {
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n--- Enviando dados falsos para a API Python ---");
-
-    String sessionToken = loginAndCreateSession();
-    if (sessionToken.length() == 0) {
-      Serial.println("❌ Nao foi possivel obter token de sessao real. Abortando teste.");
-      while(true) { delay(1000); }
-    }
+    Serial.println("\n--- Preparando para enviar dados da lixeira (Upload) ---");
+    Serial.println("Aguardando 10 segundos para dar tempo de voce criar a sessao no App...");
+    delay(10000); // Pausa de 10 segundos para você ler o QR Code no app
+    
+    Serial.println("\n--- Enviando peso e foto simulada para o Backend ---");
     
     HTTPClient http;
     http.begin(API_URL);
@@ -158,8 +85,8 @@ void loop() {
     time_t now = time(nullptr);
     String timestamp = String(now);
     
-    // 2. Monta o pacote usando o token real obtido no backend.
-    String jsonPayload = String("{\"session_token\":\"") + sessionToken + "\",\"weight_grams\":250.5,\"image\":\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=\"}";
+    // 2. Monta o pacote apenas com peso e imagem (a sessao e descoberta pelo backend via X-Bin-ID)
+    String jsonPayload = "{\"weight_grams\":250.5,\"image\":\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=\"}";
     
     // 3. O SEGREDO DO PROJETO: Assinatura de hardware!
     String message = String(BIN_ID) + timestamp + jsonPayload;
@@ -181,7 +108,7 @@ void loop() {
     http.end();
 
     // 6. Trava a placa para ela enviar apenas UMA vez e não estourar o limite Anti-Fraude de novo!
-    Serial.println("\n--- Teste concluido! Aperte o botao EN/RST na placa se quiser enviar de novo ---");
+    Serial.println("\n--- Upload de hardware concluido! Aperte o botao EN/RST na placa se quiser simular outro descarte ---");
     while(true) { delay(1000); }
   }
   
