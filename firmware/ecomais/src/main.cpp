@@ -149,15 +149,17 @@ void loop() {
       fb = esp_camera_fb_get();
     }
 
-    if (!fb) {
-      Serial.println("❌ Falha definitiva na captura. Verifique a energia (cabo USB) ou o flat cable.");
-      return; // Aborta o envio se a foto falhar novamente
-    }
-    Serial.println("✅ Foto capturada com sucesso!");
+    String base64Image = "";
 
-    // Converte a foto real para Base64 para poder trafegar no JSON
-    String base64Image = base64::encode(fb->buf, fb->len);
-    esp_camera_fb_return(fb); // Libera a memória da câmera
+    if (!fb) {
+      Serial.println("❌ Falha na camera! Usando imagem falsa de fallback para enviar o peso mesmo assim...");
+      base64Image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+    } else {
+      Serial.println("✅ Foto capturada com sucesso!");
+      // Converte a foto real para Base64 para poder trafegar no JSON
+      base64Image = base64::encode(fb->buf, fb->len);
+      esp_camera_fb_return(fb); // Libera a memória da câmera
+    }
     
     // Monta o pacote com o peso simulado e a FOTO REAL!
     String jsonPayload = "{\"weight_grams\":250.5,\"image\":\"" + base64Image + "\"}";
