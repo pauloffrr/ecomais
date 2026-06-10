@@ -7,20 +7,21 @@
 #include <base64.h>
 #include "secrets.h"
 
-// Pinos para o ESP32-CAM (Modelo AI-Thinker)
-#define PWDN_GPIO_NUM     32
+// Pinos para ESP32-WROVER-KIT / placas WROVER com conector de camera.
+// Este mapa e diferente do ESP32-CAM AI-Thinker.
+#define PWDN_GPIO_NUM     -1
 #define RESET_GPIO_NUM    -1
-#define XCLK_GPIO_NUM      0
+#define XCLK_GPIO_NUM     21
 #define SIOD_GPIO_NUM     26
 #define SIOC_GPIO_NUM     27
 #define Y9_GPIO_NUM       35
 #define Y8_GPIO_NUM       34
 #define Y7_GPIO_NUM       39
 #define Y6_GPIO_NUM       36
-#define Y5_GPIO_NUM       21
-#define Y4_GPIO_NUM       19
-#define Y3_GPIO_NUM       18
-#define Y2_GPIO_NUM        5
+#define Y5_GPIO_NUM       19
+#define Y4_GPIO_NUM       18
+#define Y3_GPIO_NUM        5
+#define Y2_GPIO_NUM        4
 #define VSYNC_GPIO_NUM    25
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
@@ -85,10 +86,10 @@ void setup() {
   config.pin_sccb_scl = SIOC_GPIO_NUM;
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
-  config.xclk_freq_hz = 10000000; // Reduzido de 20MHz para 10MHz para estabilizar o sensor
+  config.xclk_freq_hz = 10000000;
   config.pixel_format = PIXFORMAT_JPEG;
-  config.frame_size = FRAMESIZE_VGA; // Resolução 640x480 (Ideal para IA e trafegar na rede)
-  config.jpeg_quality = 12;          // Qualidade boa (menor número = melhor qualidade)
+  config.frame_size = FRAMESIZE_QVGA; // Comeca leve para validar a camera com mais estabilidade.
+  config.jpeg_quality = 12;           // Qualidade boa (menor numero = melhor qualidade).
   config.fb_count = 1;
 
   esp_err_t err = esp_camera_init(&config);
@@ -96,6 +97,10 @@ void setup() {
     Serial.printf("❌ Falha na inicializacao da camera com o erro 0x%x\n", err);
   } else {
     Serial.println("✅ Camera inicializada com sucesso!");
+    sensor_t * sensor = esp_camera_sensor_get();
+    if (sensor) {
+      Serial.printf("Sensor detectado. PID: 0x%02x\n", sensor->id.PID);
+    }
   }
 
   Serial.print("Conectando na rede: ");

@@ -15,19 +15,35 @@ from sqlalchemy.orm import Session
 from PIL import Image
 import io
 
-# --- INTEGRAÇÃO YOLOv8 ---
-try:
-    from ultralytics import YOLO
-    # Carrega o modelo globalmente para alta performance (use o caminho do seu modelo treinado via .env depois)
-    yolo_model = YOLO(getattr(settings, "AI_MODEL_PATH", "yolov8n-cls.pt"))
-except ImportError:
-    yolo_model = None
-
 from models import Discard, User, Reward, ActiveSession, SessionStatus, Material
 from config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+# --- INTEGRACAO YOLOv8 ---
+try:
+    from ultralytics import YOLO
+except ImportError:
+    YOLO = None
+
+yolo_model = None
+if YOLO is not None and settings.ENABLE_AI_CLASSIFICATION:
+    model_path = Path(settings.AI_MODEL_PATH)
+    if model_path.exists():
+        try:
+            # Carrega o modelo globalmente para evitar recarregar a cada descarte.
+            yolo_model = YOLO(str(model_path))
+            logger.info("YOLOv8 model loaded from %s", model_path)
+        except Exception as exc:
+            logger.warning("Failed to load YOLOv8 model from %s: %s", model_path, exc)
+    else:
+        logger.warning("YOLOv8 model not found at %s. Using fallback classification.", model_path)
+elif YOLO is None:
+    logger.warning("Ultralytics is not installed. Using fallback classification.")
+
+if YOLO is None:
+    yolo_model = None
 
 
 # ==================== IMAGE PROCESSING ====================
