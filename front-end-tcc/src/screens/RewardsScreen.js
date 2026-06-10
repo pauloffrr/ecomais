@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   Pressable,
   RefreshControl,
@@ -150,13 +151,6 @@ const getInitials = (name) => {
 
 const formatPoints = (value) => Number(value ?? 0).toLocaleString('pt-BR');
 
-const generateCouponCode = () => {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const part = () =>
-    Array.from({ length: 4 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
-  return `ECO-${part()}-${part()}`;
-};
-
 const normalizeReward = (reward, balance) => ({
   ...reward,
   points: reward.pointsRequired,
@@ -166,7 +160,6 @@ const normalizeReward = (reward, balance) => ({
 export default function RewardsScreen({ navigation }) {
   const [activeCategory, setActiveCategory] = useState('all');
   const [redeemingId, setRedeemingId] = useState(null);
-  const [redeemedPoints, setRedeemedPoints] = useState(0);
   const [redeemedCoupon, setRedeemedCoupon] = useState(null);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const { user, loading: userLoading, refreshing: userRefreshing, refetch: refetchUser } = useUser();
@@ -179,7 +172,7 @@ export default function RewardsScreen({ navigation }) {
     return rewards.reduce((sum, reward) => sum + Number(reward.points ?? 0), 0);
   }, [rewards, user?.total_points]);
 
-  const pointsBalance = Math.max(0, backendPoints - redeemedPoints);
+  const pointsBalance = Math.max(0, backendPoints);
   const loading = userLoading || rewardsLoading || discardsLoading || materialsLoading;
   const refreshing = userRefreshing || rewardsRefreshing || discardsRefreshing || materialsRefreshing;
 
@@ -221,10 +214,19 @@ export default function RewardsScreen({ navigation }) {
     setRedeemingId(item.id);
 
     try {
-      await rewardService.redeemReward(item.id);
-      const code = generateCouponCode();
-      setRedeemedPoints((current) => current + item.pointsRequired);
-      setRedeemedCoupon({ ...item, code });
+      const redemption = await rewardService.redeemReward(item.id);
+      await Promise.all([
+        refetchUser({ refresh: true }),
+        refetchRewards({ refresh: true }),
+      ]);
+      setRedeemedCoupon({ ...item, code: redemption.coupon_code });
+    } catch (error) {
+      const detail = error?.response?.data?.detail;
+      const message =
+        detail === 'Insufficient points'
+          ? 'Voce nao possui pontos suficientes para esta recompensa.'
+          : 'Nao foi possivel concluir o resgate. Tente novamente.';
+      Alert.alert('Falha no resgate', message);
     } finally {
       setRedeemingId(null);
     }

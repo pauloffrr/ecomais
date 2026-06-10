@@ -9,9 +9,6 @@ export const getRewardHistory = async ({ skip = 0, limit = 1000 } = {}) => {
 };
 
 export const redeemReward = async (rewardId) => {
-  // TODO: integrar com POST /v1/rewards/redeem quando backend estiver disponível
-  return {
-    rewardId,
-    redeemedAt: new Date().toISOString(),
-  };
+  const response = await api.post(`/rewards/redeem/${encodeURIComponent(rewardId)}`);
+  return response.data;
 };

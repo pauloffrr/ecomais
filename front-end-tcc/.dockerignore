@@ -1,0 +1,12 @@
+node_modules
+.expo
+dist
+.git
+.gitignore
+.vscode
+.env
+npm-debug.log*
+Dockerfile*
+docker-compose*.yml
+docker-compose*.yaml
+DOCUMENTACAO_FRONTEND.md

@@ -22,6 +22,15 @@ class RewardHistoryResponse(BaseModel):
     total: int
 
 
+class RewardRedemptionResponse(BaseModel):
+    reward_id: str
+    title: str
+    points_spent: int
+    remaining_points: int
+    coupon_code: str
+    transaction: RewardHistoryItem
+
+
 class LeaderboardEntry(BaseModel):
     rank: int
     username: str
