@@ -100,6 +100,17 @@ void setup() {
     sensor_t * sensor = esp_camera_sensor_get();
     if (sensor) {
       Serial.printf("Sensor detectado. PID: 0x%02x\n", sensor->id.PID);
+
+      // Ajustes para reduzir tom esverdeado e estabilizar a imagem do OV3660/OV2640.
+      sensor->set_whitebal(sensor, 1);
+      sensor->set_awb_gain(sensor, 1);
+      sensor->set_wb_mode(sensor, 0);       // 0 = auto
+      sensor->set_gain_ctrl(sensor, 1);
+      sensor->set_exposure_ctrl(sensor, 1);
+      sensor->set_brightness(sensor, 0);
+      sensor->set_contrast(sensor, 1);
+      sensor->set_saturation(sensor, 0);
+      sensor->set_sharpness(sensor, 1);
     }
   }
 
@@ -145,6 +156,14 @@ void loop() {
     
     // 2. Tira a foto de verdade com a câmera!
     Serial.println("📸 Tirando foto do descarte...");
+    for (int i = 0; i < 3; i++) {
+      camera_fb_t * warmup = esp_camera_fb_get();
+      if (warmup) {
+        esp_camera_fb_return(warmup);
+      }
+      delay(120);
+    }
+
     camera_fb_t * fb = esp_camera_fb_get();
     
     // Tenta de novo se o primeiro frame falhar (comum por falta de pico de energia)

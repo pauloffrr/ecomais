@@ -48,6 +48,8 @@ const apiBaseURL = normalizeBaseURL(
     `http://${getDevelopmentHost()}:${extra.apiPort ?? 8000}${extra.apiPath ?? '/v1'}`
 );
 
+export const API_BASE_URL = apiBaseURL;
+
 const api = axios.create({
   baseURL: apiBaseURL,
   timeout: 15000,

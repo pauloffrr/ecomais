@@ -16,6 +16,7 @@ from database import SessionLocal
 logger = logging.getLogger(__name__)
 settings = get_settings()
 ai_inference_lock = Lock()
+BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 try:
     import torch
@@ -27,6 +28,8 @@ except ImportError:
 yolo_model = None
 if YOLO is not None and settings.ENABLE_AI_CLASSIFICATION:
     model_path = Path(settings.AI_MODEL_PATH)
+    if not model_path.is_absolute():
+        model_path = BACKEND_DIR / model_path
     if model_path.exists():
         try:
             original_torch_load = torch.load
@@ -44,9 +47,9 @@ if YOLO is not None and settings.ENABLE_AI_CLASSIFICATION:
         except Exception as exc:
             logger.warning("Failed to load YOLOv8 model from %s: %s", model_path, exc)
     else:
-        logger.warning("YOLOv8 model not found at %s. Using fallback classification.", model_path)
+        logger.warning("YOLOv8 model not found at %s. AI validation will require manual review.", model_path)
 elif YOLO is None:
-    logger.warning("Ultralytics is not installed. Using fallback classification.")
+    logger.warning("Ultralytics is not installed. AI validation will require manual review.")
 
 if YOLO is None:
     yolo_model = None
@@ -127,12 +130,10 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
             discard.vision_validated = False
             discard.validation_errors = f"AI confidence too low: {ai_result['confidence']}"
             discard.is_validated = False
+            discard.flagged_as_suspicious = True
             discard.validated_at = datetime.utcnow()
 
-            # Flag for manual review if close to threshold
-            if ai_result["confidence"] >= settings.MANUAL_REVIEW_CONFIDENCE_THRESHOLD:
-                discard.flagged_as_suspicious = True
-                logger.info(f"Discard {discard_id} flagged for manual review")
+            logger.info(f"Discard {discard_id} flagged for manual review")
 
             db.commit()
             return
@@ -213,8 +214,7 @@ def process_image_with_ai_background(discard_id: int, image_path: str):
 
 def run_ai_classification(image_path: str) -> dict:
     if yolo_model is None:
-        logger.warning("YOLOv8 nao carregado! Retornando classe fallback.")
-        return {"class_name": "plastic_pet", "confidence": 0.85}
+        raise RuntimeError("YOLOv8 model is not loaded; cannot classify image")
 
     logger.info("Waiting for AI inference lock: image=%s", image_path)
     try:

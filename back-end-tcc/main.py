@@ -5,9 +5,11 @@ Main entry point for the backend API
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from config import get_settings
 from database import check_db_connection, ensure_reward_balance_triggers
@@ -74,6 +76,12 @@ app.add_middleware(
 )
 
 # ==================== ROUTES ====================
+
+uploads_dir = Path(settings.LOCAL_STORAGE_PATH)
+if not uploads_dir.is_absolute():
+    uploads_dir = Path(__file__).resolve().parent / uploads_dir
+uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads/images", StaticFiles(directory=str(uploads_dir)), name="upload-images")
 
 # Health check
 @app.get("/health")

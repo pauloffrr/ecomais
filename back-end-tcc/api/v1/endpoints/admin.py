@@ -23,6 +23,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(dependencies=[Depends(get_current_admin_user)])
 
 
+def _discard_image_url(discard: Discard) -> str | None:
+    if not discard.image_path:
+        return None
+
+    filename = discard.image_path.rsplit("/", 1)[-1]
+    return f"/uploads/images/{filename}"
+
+
 def _apply_reward_for_discard(db: Session, discard: Discard) -> None:
     """Apply reward points for a discard if they have not been applied yet."""
     existing_reward = db.query(Reward).filter(Reward.discard_id == discard.id).first()
@@ -102,6 +110,7 @@ def list_flagged_discards(
             bin_id=discard.bin_id,
             weight_grams=discard.weight_grams,
             image_path=discard.image_path,
+            image_url=_discard_image_url(discard),
             ai_classification=discard.ai_classification,
             ai_confidence=discard.ai_confidence,
             validation_errors=discard.validation_errors,
@@ -147,6 +156,7 @@ def resolve_flagged_discard(
         bin_id=discard.bin_id,
         weight_grams=discard.weight_grams,
         image_path=discard.image_path,
+        image_url=_discard_image_url(discard),
         ai_classification=discard.ai_classification,
         ai_confidence=discard.ai_confidence,
         validation_errors=discard.validation_errors,

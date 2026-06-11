@@ -1,5 +1,7 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
 import { AlertTriangle, Check, Clock3, Scale, UserRound, X } from 'lucide-react-native';
+import { API_BASE_URL } from '../../api/api';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -23,10 +25,21 @@ const formatConfidence = (value) => {
   return `${Math.round(Number(value) * 100)}%`;
 };
 
+const apiOrigin = API_BASE_URL.replace(/\/v1\/?$/, '');
+
+const resolveImageUrl = (discard) => {
+  const imageUrl = discard.image_url ?? discard.imagePath;
+  if (!imageUrl) return null;
+  if (/^https?:\/\//i.test(imageUrl)) return imageUrl;
+  return `${apiOrigin}${imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}`;
+};
+
 export default function FlaggedDiscardCard({ discard, loading, onApprove, onReject }) {
+  const [imagePreviewVisible, setImagePreviewVisible] = useState(false);
   const reportedMaterial = discard.reported_material ?? discard.material_informed;
   const detectedMaterial = discard.detected_material ?? discard.ai_classification;
   const userLabel = discard.user_name ?? discard.user?.full_name ?? `Usuário #${discard.user_id}`;
+  const imageUrl = resolveImageUrl(discard);
 
   return (
     <View style={styles.card}>
@@ -70,6 +83,29 @@ export default function FlaggedDiscardCard({ discard, loading, onApprove, onReje
           <Text style={styles.confidence}>Confiança: {formatConfidence(discard.ai_confidence)}</Text>
         </View>
       </View>
+
+      {imageUrl ? (
+        <>
+          <Pressable
+            accessibilityRole="imagebutton"
+            onPress={() => setImagePreviewVisible(true)}
+            style={({ pressed }) => [styles.imageButton, pressed && styles.pressed]}
+          >
+            <Image source={{ uri: imageUrl }} style={styles.discardImage} resizeMode="cover" />
+          </Pressable>
+
+          <Modal
+            visible={imagePreviewVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setImagePreviewVisible(false)}
+          >
+            <Pressable style={styles.previewOverlay} onPress={() => setImagePreviewVisible(false)}>
+              <Image source={{ uri: imageUrl }} style={styles.previewImage} resizeMode="contain" />
+            </Pressable>
+          </Modal>
+        </>
+      ) : null}
 
       <View style={styles.reasonBox}>
         <Text style={styles.reasonLabel}>Motivo da sinalização</Text>
@@ -174,6 +210,32 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     paddingHorizontal: spacing.sm,
+  },
+  imageButton: {
+    width: '100%',
+    marginTop: spacing.md,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  discardImage: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  previewOverlay: {
+    flex: 1,
+    padding: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.88)',
+  },
+  previewImage: {
+    width: '100%',
+    height: '86%',
+    maxWidth: 900,
+    borderRadius: 8,
   },
   divider: {
     width: 1,
