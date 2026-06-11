@@ -1,11 +1,5 @@
-"""
-Background Tasks Service - MVP Version
-Uses FastAPI's native BackgroundTasks for async processing
-
-For production scaling, consider migrating to Celery + Redis
-"""
-
 import logging
+from threading import Lock
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -20,8 +14,8 @@ from config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+ai_inference_lock = Lock()
 
-# --- INTEGRACAO YOLOv8 ---
 try:
     from ultralytics import YOLO
 except ImportError:
@@ -32,7 +26,6 @@ if YOLO is not None and settings.ENABLE_AI_CLASSIFICATION:
     model_path = Path(settings.AI_MODEL_PATH)
     if model_path.exists():
         try:
-            # Carrega o modelo globalmente para evitar recarregar a cada descarte.
             yolo_model = YOLO(str(model_path))
             logger.info("YOLOv8 model loaded from %s", model_path)
         except Exception as exc:
@@ -49,17 +42,7 @@ if YOLO is None:
 # ==================== IMAGE PROCESSING ====================
 
 def save_image_to_disk(image_base64: str, discard_id: int) -> str:
-    """
-    Save uploaded image to local filesystem.
-    Returns the file path.
 
-    Args:
-        image_base64: Base64 encoded image string
-        discard_id: Discard record ID for filename
-
-    Returns:
-        str: Path to saved image file
-    """
     try:
         # Create uploads directory if it doesn't exist
         upload_dir = Path(settings.LOCAL_STORAGE_PATH)
@@ -69,17 +52,13 @@ def save_image_to_disk(image_base64: str, discard_id: int) -> str:
         image_data = base64.b64decode(image_base64)
         image = Image.open(io.BytesIO(image_data))
 
-        # JPEG only supports RGB, so normalize every incoming mode before saving.
-        # This covers RGBA, LA, P, L, and any other Pillow mode coming from the ESP32.
         if image.mode != "RGB":
             image = image.convert("RGB")
 
-        # Generate filename with timestamp
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         filename = f"discard_{discard_id}_{timestamp}.jpg"
         filepath = upload_dir / filename
 
-        # Save image with compression
         image.save(
             filepath,
             format="JPEG",
@@ -96,17 +75,7 @@ def save_image_to_disk(image_base64: str, discard_id: int) -> str:
 
 
 def process_image_with_ai(discard_id: int, image_path: str, db: Session):
-    """
-    Background task: Process image with AI classification.
-    Updates the discard record with AI results and awards points if validated.
 
-    This runs asynchronously after returning 200 OK to the ESP32.
-
-    Args:
-        discard_id: Discard record ID to update
-        image_path: Path to the saved image file
-        db: Database session
-    """
     try:
         logger.info(f"Starting AI processing for discard {discard_id}")
 
@@ -119,11 +88,10 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
         # Executa a inferência real do YOLOv8 na imagem salva
         ai_result = run_ai_classification(image_path)
 
-        # Update discard with AI results
         discard.ai_classification = ai_result["class_name"]
         discard.ai_confidence = ai_result["confidence"]
 
-        # Find matching material
+
         material = db.query(Material).filter(
             Material.ai_class_name == ai_result["class_name"]
         ).first()
@@ -137,7 +105,6 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
             db.commit()
             return
 
-        # Validate AI confidence threshold
         if ai_result["confidence"] < material.confidence_threshold:
             logger.warning(
                 f"AI confidence {ai_result['confidence']} below threshold "
@@ -160,7 +127,6 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
         discard.vision_validated = True
         discard.material_id = material.id
 
-        # Check if all validations passed (session, weight, vision)
         if (discard.session_validated and
             discard.weight_validated and
             discard.vision_validated):
@@ -220,35 +186,35 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
 
 
 def run_ai_classification(image_path: str) -> dict:
-    """
-    Run actual YOLOv8 model inference on the discard image.
-
-    Returns:
-        dict: {"class_name": str, "confidence": float}
-    """
     if yolo_model is None:
         logger.warning("YOLOv8 nao carregado! Retornando classe fallback.")
         return {"class_name": "plastic_pet", "confidence": 0.85}
-        
-    results = yolo_model(image_path, verbose=False)
-    probs = results[0].probs
-    
-    return {
-        "class_name": yolo_model.names[probs.top1],
-        "confidence": float(probs.top1conf)
-    }
+
+    logger.info("Waiting for AI inference lock: image=%s", image_path)
+    try:
+        with ai_inference_lock:
+            logger.info("AI inference lock acquired: image=%s", image_path)
+            results = yolo_model(image_path, verbose=False)
+            probs = results[0].probs
+            classification = {
+                "class_name": yolo_model.names[probs.top1],
+                "confidence": float(probs.top1conf),
+            }
+            logger.info(
+                "AI inference completed: image=%s class=%s confidence=%.4f",
+                image_path,
+                classification["class_name"],
+                classification["confidence"],
+            )
+    finally:
+        logger.info("AI inference lock released: image=%s", image_path)
+
+    return classification
 
 
 # ==================== SESSION CLEANUP ====================
 
 def cleanup_expired_sessions(db: Session):
-    """
-    Background task: Mark expired sessions as EXPIRED.
-    Called periodically or on-demand during session validation.
-
-    For MVP: Called on each /sessions/start or /bin/upload request
-    For Production: Run as scheduled Celery task every 30 seconds
-    """
     try:
         now = datetime.utcnow()
 
@@ -284,12 +250,6 @@ def complete_session(session: ActiveSession):
 # ==================== IMAGE CLEANUP ====================
 
 def cleanup_old_images():
-    """
-    Background task: Delete images older than retention period.
-
-    For MVP: Run manually or via cron job
-    For Production: Run as scheduled Celery task daily
-    """
     try:
         upload_dir = Path(settings.LOCAL_STORAGE_PATH)
         if not upload_dir.exists():
@@ -317,42 +277,7 @@ def cleanup_old_images():
 # ==================== DUPLICATE IMAGE DETECTION ====================
 
 def check_duplicate_image(user_id: int, image_path: str, db: Session) -> bool:
-    """
-    Check if user has submitted a similar image recently (within 24h).
-    Uses perceptual hashing (pHash) to detect duplicates.
-
-    For MVP: Simple implementation
-    For Production: Consider using imagehash library or Redis cache
-
-    Args:
-        user_id: User ID to check
-        image_path: Path to the image to check
-        db: Database session
-
-    Returns:
-        bool: True if duplicate detected, False otherwise
-    """
     try:
-        # TODO: Implement perceptual hashing
-        # For MVP, skip duplicate detection (return False)
-        #
-        # Example production implementation:
-        # import imagehash
-        # from PIL import Image
-        #
-        # current_hash = imagehash.phash(Image.open(image_path))
-        #
-        # recent_discards = db.query(Discard).filter(
-        #     Discard.user_id == user_id,
-        #     Discard.created_at > datetime.utcnow() - timedelta(hours=24)
-        # ).all()
-        #
-        # for discard in recent_discards:
-        #     if discard.image_path:
-        #         prev_hash = imagehash.phash(Image.open(discard.image_path))
-        #         if current_hash - prev_hash < 5:  # Hamming distance < 5
-        #             return True
-
         return False
 
     except Exception as e:

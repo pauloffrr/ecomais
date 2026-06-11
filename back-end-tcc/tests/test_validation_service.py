@@ -202,3 +202,43 @@ def test_process_image_with_ai_success_awards_points(monkeypatch):
     assert user.total_discards == 1
     assert db.add.called
     assert any(isinstance(call.args[0], Reward) for call in db.add.call_args_list)
+
+
+def test_ai_classification_executes_with_lock_and_logs(monkeypatch, caplog):
+    execution_state = {"locked": False, "model_called": False}
+
+    class TrackingLock:
+        def __enter__(self):
+            execution_state["locked"] = True
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            execution_state["locked"] = False
+
+    class Probabilities:
+        top1 = 0
+        top1conf = 0.93
+
+    class Result:
+        probs = Probabilities()
+
+    class Model:
+        names = {0: "plastic_pet"}
+
+        def __call__(self, image_path, verbose):
+            assert execution_state["locked"] is True
+            assert image_path == "discard.jpg"
+            assert verbose is False
+            execution_state["model_called"] = True
+            return [Result()]
+
+    monkeypatch.setattr(background_tasks, "ai_inference_lock", TrackingLock())
+    monkeypatch.setattr(background_tasks, "yolo_model", Model())
+
+    with caplog.at_level("INFO", logger=background_tasks.__name__):
+        result = background_tasks.run_ai_classification("discard.jpg")
+
+    assert execution_state == {"locked": False, "model_called": True}
+    assert result == {"class_name": "plastic_pet", "confidence": 0.93}
+    assert "AI inference lock acquired" in caplog.text
+    assert "AI inference completed" in caplog.text
+    assert "AI inference lock released" in caplog.text
