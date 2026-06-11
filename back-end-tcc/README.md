@@ -35,6 +35,8 @@ Testes:
 
 ```powershell
 pytest -q
+pytest -m unit -q
+pytest -m integration -q
 ```
 
 Os caminhos de uploads, logs e modelos de IA são relativos a esta pasta. O

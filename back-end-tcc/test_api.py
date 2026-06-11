@@ -79,7 +79,7 @@ def create_real_session() -> str:
     return session_token
 
 
-def test_health_check():
+def check_health():
     """Test health check endpoint"""
     print("\n=== Testing Health Check ===")
     response = requests.get(f"{BASE_URL}/health")
@@ -88,7 +88,7 @@ def test_health_check():
     return response.status_code == 200
 
 
-def test_bin_upload(session_token: str):
+def check_bin_upload(session_token: str):
     """Test /v1/bin/upload endpoint with HMAC signature"""
     print("\n=== Testing /v1/bin/upload ===")
 
@@ -131,7 +131,7 @@ def test_bin_upload(session_token: str):
     return response.status_code == 200
 
 
-def test_bin_heartbeat():
+def check_bin_heartbeat():
     """Test /v1/bin/heartbeat endpoint"""
     print("\n=== Testing /v1/bin/heartbeat ===")
 
@@ -173,7 +173,7 @@ def main():
 
     # Check if API is running
     try:
-        health_ok = test_health_check()
+        health_ok = check_health()
         if not health_ok:
             print("\n❌ Health check failed. Is the API running?")
             print("   Start it with: uvicorn main:app --reload")
@@ -193,11 +193,11 @@ def main():
     print("   3. Run this script again")
 
     # Uncomment these when you have valid credentials:
-    test_bin_heartbeat()
+    check_bin_heartbeat()
     
     session_token = create_real_session()
     if session_token:
-        test_bin_upload(session_token)
+        check_bin_upload(session_token)
 
     print("\n" + "=" * 60)
     print("✅ Basic tests passed!")
