@@ -50,7 +50,6 @@ def _apply_reward_for_discard(db: Session, discard: Discard) -> None:
 
     user = db.query(User).filter(User.id == discard.user_id).first()
     if user:
-        user.total_points += points
         user.total_discards += 1
 
     discard.points_applied = True

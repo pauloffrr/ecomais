@@ -117,6 +117,7 @@ def init_db():
         Base.metadata.create_all(bind=engine)
         _ensure_user_cpf_column()
         _ensure_user_admin_column()
+        ensure_reward_balance_triggers()
         logger.info("Database tables created successfully")
     except Exception as e:
         logger.error(f"Failed to create database tables: {e}")
@@ -157,6 +158,103 @@ def _ensure_user_cpf_column():
     logger.info("Added missing users.cpf column")
 
 
+def ensure_reward_balance_triggers(target_engine=engine, reconcile: bool = False):
+    """Keep users.total_points synchronized with the rewards ledger."""
+    inspector = inspect(target_engine)
+    tables = set(inspector.get_table_names())
+    if not {"users", "rewards"}.issubset(tables):
+        return
+
+    dialect = target_engine.dialect.name
+    trigger_names = (
+        "trg_rewards_points_after_insert",
+        "trg_rewards_points_after_update",
+        "trg_rewards_points_after_delete",
+    )
+
+    with target_engine.begin() as conn:
+        for trigger_name in trigger_names:
+            conn.execute(text(f"DROP TRIGGER IF EXISTS {trigger_name}"))
+
+        if dialect == "sqlite":
+            conn.execute(text("""
+                CREATE TRIGGER trg_rewards_points_after_insert
+                AFTER INSERT ON rewards
+                FOR EACH ROW
+                BEGIN
+                    UPDATE users
+                    SET total_points = total_points + NEW.points
+                    WHERE id = NEW.user_id;
+                END
+            """))
+            conn.execute(text("""
+                CREATE TRIGGER trg_rewards_points_after_update
+                AFTER UPDATE OF user_id, points ON rewards
+                FOR EACH ROW
+                BEGIN
+                    UPDATE users
+                    SET total_points = total_points - OLD.points
+                    WHERE id = OLD.user_id;
+                    UPDATE users
+                    SET total_points = total_points + NEW.points
+                    WHERE id = NEW.user_id;
+                END
+            """))
+            conn.execute(text("""
+                CREATE TRIGGER trg_rewards_points_after_delete
+                AFTER DELETE ON rewards
+                FOR EACH ROW
+                BEGIN
+                    UPDATE users
+                    SET total_points = total_points - OLD.points
+                    WHERE id = OLD.user_id;
+                END
+            """))
+        else:
+            conn.execute(text("""
+                CREATE TRIGGER trg_rewards_points_after_insert
+                AFTER INSERT ON rewards
+                FOR EACH ROW
+                UPDATE users
+                SET total_points = total_points + NEW.points
+                WHERE id = NEW.user_id
+            """))
+            conn.execute(text("""
+                CREATE TRIGGER trg_rewards_points_after_update
+                AFTER UPDATE ON rewards
+                FOR EACH ROW
+                BEGIN
+                    UPDATE users
+                    SET total_points = total_points - OLD.points
+                    WHERE id = OLD.user_id;
+                    UPDATE users
+                    SET total_points = total_points + NEW.points
+                    WHERE id = NEW.user_id;
+                END
+            """))
+            conn.execute(text("""
+                CREATE TRIGGER trg_rewards_points_after_delete
+                AFTER DELETE ON rewards
+                FOR EACH ROW
+                UPDATE users
+                SET total_points = total_points - OLD.points
+                WHERE id = OLD.user_id
+            """))
+
+        if reconcile:
+            conn.execute(text("""
+                UPDATE users
+                SET total_points = COALESCE(
+                    (SELECT SUM(rewards.points)
+                     FROM rewards
+                     WHERE rewards.user_id = users.id),
+                    0
+                )
+            """))
+
+    logger.info("Reward balance triggers installed%s", " and balances reconciled" if reconcile else "")
+
+
 def check_db_connection() -> bool:
     """
     Health check function to verify database connectivity.
@@ -181,11 +279,14 @@ def atomic_update(db: Session, callback):
     Auto-rollback on error, commit on success.
 
     Example:
-        def update_points(session):
-            user = session.query(User).filter(User.id == 1).first()
-            user.total_points += 100
+        def add_reward(session):
+            session.add(Reward(
+                user_id=1,
+                points=100,
+                transaction_type="bonus",
+            ))
 
-        atomic_update(db, update_points)
+        atomic_update(db, add_reward)
     """
     try:
         callback(db)
@@ -205,11 +306,14 @@ def update_with_retry(db: Session, callback, max_retries: int = 3):
     Useful for high-concurrency updates (e.g., user points).
 
     Example:
-        def increment_points(session):
-            user = session.query(User).filter(User.id == 1).with_for_update().first()
-            user.total_points += 100
+        def add_reward(session):
+            session.add(Reward(
+                user_id=1,
+                points=100,
+                transaction_type="bonus",
+            ))
 
-        update_with_retry(db, increment_points)
+        update_with_retry(db, add_reward)
     """
     retries = 0
     while retries < max_retries:

@@ -10,7 +10,7 @@ Produzir documentacao fiel ao codigo atual deste repositorio. Manter o foco no f
 ## Fluxo
 
 1. Ler `package.json`, `app.json`, `App.js`, configuracoes e documentacao existente.
-2. Mapear `src/screens`, `src/components`, `src/navigation`, `src/services`, `src/hooks`, `src/context`, `src/theme`, `src/api` e `src/mocks`.
+2. Mapear `src/screens`, `src/components`, `src/navigation`, `src/services`, `src/hooks`, `src/context`, `src/theme`, `src/api` e `src/data`.
 3. Seguir imports desde `App.js` para identificar apenas arquivos ativos.
 4. Mapear telas, dados, loading, erro, empty state, validacoes, chamadas externas e navegacao.
 5. Rastrear API, JWT e sessao desde a interface ate Axios e armazenamento local.

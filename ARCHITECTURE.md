@@ -155,10 +155,10 @@ def verify_esp32_signature(
 
 ---
 
-## 3. Project Directory Structure
+## 3. Backend Directory Structure
 
 ```
-eco_mais/
+back-end-tcc/
 ├── main.py                      # FastAPI application entry point
 ├── config.py                    # Environment variables and settings
 ├── models.py                    # SQLAlchemy models (already created)

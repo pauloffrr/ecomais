@@ -1,7 +1,7 @@
 import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 import CouponCard from '../components/CouponCard';
 import { BackHeader } from '../components/ScreenHeader';
-import { coupons } from '../mocks/couponsData';
+import { coupons } from '../data/rewardCatalog';
 import { colors } from '../theme/colors';
 
 export default function CouponsScreen({ navigation }) {

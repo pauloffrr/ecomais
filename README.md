@@ -30,18 +30,12 @@ Eco Mais é um sistema inteligente de reciclagem que combina **hardware ESP32-CA
 
 ```
 eco_mais/
-├── models.py              # Modelos de banco de dados SQLAlchemy ✓
-├── database.py            # Conexão com o banco e gerenciamento de sessão ✓
-├── config.py              # Configuração de ambiente com Pydantic ✓
-├── requirements.txt       # Dependências Python ✓
-├── .env.example           # Modelo de variáveis de ambiente ✓
-├── ARCHITECTURE.md        # Guia completo de arquitetura do sistema ✓
-│
-├── api/v1/endpoints/      # Handlers das rotas da API (a implementar)
-├── services/              # Camada de lógica de negócio (a implementar)
-├── ml/models/             # Arquivos do modelo de IA (a treinar)
-├── migrations/            # Migrações do banco com Alembic
-└── tests/                 # Suite de testes com Pytest
+├── back-end-tcc/          # API FastAPI, serviços, modelos e testes
+├── front-end-tcc/         # Aplicação Expo/React Native
+├── firmware/              # Código do ESP32
+├── docs/                  # Diagramas e documentação compartilhada
+├── skills/                # Skills e documentação gerada
+└── ARCHITECTURE.md        # Guia completo de arquitetura do sistema
 ```
 
 ---
@@ -59,10 +53,11 @@ eco_mais/
 ```bash
 # Clonar o repositório
 cd Eco_Mais
+cd back-end-tcc
 
 # Criar ambiente virtual
-python -m venv venv
-source venv/bin/activate  # No Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # No Windows: .venv\Scripts\activate
 
 # Instalar dependências
 pip install -r requirements.txt
@@ -347,8 +342,8 @@ pytest tests/test_security.py -v
 ## 📖 Documentação
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Design completo do sistema, fluxos de segurança, lógica de validação
-- **[models.py](models.py)** - Modelos SQLAlchemy do banco com relacionamentos
-- **[config.py](config.py)** - Referência de configuração de ambiente
+- **[models.py](back-end-tcc/models.py)** - Modelos SQLAlchemy do banco com relacionamentos
+- **[config.py](back-end-tcc/config.py)** - Referência de configuração de ambiente
 
 ---
 

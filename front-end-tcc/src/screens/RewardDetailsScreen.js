@@ -4,8 +4,7 @@ import { Gift } from 'lucide-react-native';
 import GradientButton from '../components/GradientButton';
 import PointsBadge from '../components/PointsBadge';
 import { BackHeader } from '../components/ScreenHeader';
-import { coupons } from '../mocks/couponsData';
-import { featuredRewards } from '../mocks/rewardsData';
+import { coupons, featuredRewards } from '../data/rewardCatalog';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 
@@ -28,7 +27,7 @@ export default function RewardDetailsScreen({ navigation, route }) {
             <Text style={styles.partner}>{item.partner}</Text>
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.description}>{item.description}</Text>
-            <PointsBadge points={item.points} />
+            <PointsBadge points={item.pointsRequired} />
             <GradientButton title="Resgatar" onPress={() => navigation.goBack()} style={styles.button} />
           </View>
         </View>

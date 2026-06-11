@@ -18,6 +18,7 @@ import CouponCard from '../components/CouponCard';
 import FloatingTabBar from '../components/FloatingTabBar';
 import RewardBanner from '../components/RewardBanner';
 import RewardCard from '../components/RewardCard';
+import { coupons as rewardCoupons, featuredRewards as rewardHighlights } from '../data/rewardCatalog';
 import { useDiscards } from '../hooks/useDiscards';
 import { useMaterials } from '../hooks/useMaterials';
 import { useRewards } from '../hooks/useRewards';
@@ -41,106 +42,6 @@ const REWARD_CATEGORIES = [
   { id: 'shopping', label: 'Compras' },
   { id: 'sustainability', label: 'Sustentabilidade' },
   { id: 'experiences', label: 'Experiencias' },
-];
-
-const FEATURED_REWARDS = [
-  {
-    id: 'monthly-transit-pass',
-    partner: 'Transporte Publico',
-    category: 'transport',
-    title: 'Passe Livre Mensal',
-    description: 'Troque seus pontos por 30 dias de transporte urbano.',
-    pointsRequired: 1200,
-    actionLabel: 'Resgatar recompensa',
-    visual: 'bus',
-  },
-  {
-    id: 'plant-ten-trees',
-    partner: 'Meta Sustentavel',
-    category: 'sustainability',
-    title: 'Plantar 10 Arvores',
-    description: 'Contribuicao direta para projeto de reflorestamento nacional.',
-    pointsRequired: 450,
-    actionLabel: 'Resgatar',
-    visual: 'trees',
-  },
-  {
-    id: 'free-coffee',
-    partner: 'Parceiro Cafe',
-    category: 'food',
-    title: 'Cafe Gratis',
-    description: 'Ganhe 1 cafe expresso em cafeterias parceiras.',
-    pointsRequired: 150,
-    actionLabel: 'Resgatar',
-    visual: 'coffee',
-  },
-];
-
-const COUPONS = [
-  {
-    id: 'ifood-20-off',
-    partner: 'iFood',
-    category: 'food',
-    title: '20% OFF em Pedido',
-    description: 'Desconto valido em restaurantes participantes.',
-    pointsRequired: 250,
-  },
-  {
-    id: 'uber-15-off',
-    partner: 'Uber',
-    category: 'transport',
-    title: 'R$15 OFF na Corrida',
-    description: 'Desconto em viagens urbanas.',
-    pointsRequired: 800,
-  },
-  {
-    id: 'mercado-livre-free-shipping',
-    partner: 'Mercado Livre',
-    category: 'shopping',
-    title: 'Frete Gratis',
-    description: 'Cupom valido em produtos selecionados.',
-    pointsRequired: 500,
-  },
-  {
-    id: 'outback-dessert',
-    partner: 'Outback Brasil',
-    category: 'food',
-    title: 'Sobremesa Gratis',
-    description: 'Ganhe sobremesa na compra de prato principal.',
-    pointsRequired: 300,
-  },
-  {
-    id: 'natura-sustainable-off',
-    partner: 'Natura',
-    category: 'sustainability',
-    title: '15% OFF Sustentavel',
-    description: 'Desconto em produtos eco-friendly.',
-    pointsRequired: 600,
-  },
-  {
-    id: 'spotify-premium-month',
-    partner: 'Spotify Premium',
-    category: 'experiences',
-    title: '1 Mes Premium',
-    description: 'Assinatura gratuita por 30 dias.',
-    pointsRequired: 1000,
-  },
-  {
-    id: 'bike-itau-one-hour',
-    partner: 'Bike Itau',
-    category: 'transport',
-    title: '1 Hora Gratis',
-    description: 'Mobilidade urbana sustentavel.',
-    pointsRequired: 100,
-  },
-  {
-    id: 'tok-stok-25-off',
-    partner: 'Tok&Stok',
-    category: 'shopping',
-    title: 'R$25 OFF',
-    description: 'Cupom valido para itens sustentaveis.',
-    pointsRequired: 750,
-  },
 ];
 
 const getInitials = (name) => {
@@ -178,7 +79,7 @@ export default function RewardsScreen({ navigation }) {
 
   const featuredRewards = useMemo(
     () =>
-      FEATURED_REWARDS.map((reward) => normalizeReward(reward, pointsBalance)).filter(
+      rewardHighlights.map((reward) => normalizeReward(reward, pointsBalance)).filter(
         (reward) => activeCategory === 'all' || reward.category === activeCategory
       ),
     [activeCategory, pointsBalance]
@@ -186,7 +87,7 @@ export default function RewardsScreen({ navigation }) {
 
   const coupons = useMemo(
     () =>
-      COUPONS.map((coupon) => normalizeReward(coupon, pointsBalance)).filter(
+      rewardCoupons.map((coupon) => normalizeReward(coupon, pointsBalance)).filter(
         (coupon) => activeCategory === 'all' || coupon.category === activeCategory
       ),
     [activeCategory, pointsBalance]

@@ -16,7 +16,6 @@ This directory contains the business logic layer for Eco Mais.
   - Updates user's total_points atomically
 - `cleanup_expired_sessions(db)` - Marks expired sessions
 - `check_duplicate_image(user_id, image_path, db)` - Fraud detection (MVP: placeholder)
-- `mock_ai_classification(image_path)` - Temporary mock AI (replace with real model)
 
 **Usage Example:**
 ```python
@@ -219,17 +218,6 @@ from services.validation_service import validate_weight
 is_valid, error = validate_weight(245.5, user_id=1, db=db)
 print(f"Weight valid: {is_valid}, Error: {error}")
 ```
-
-### Test background_tasks (mock)
-```python
-from services.background_tasks import mock_ai_classification
-
-result = mock_ai_classification("path/to/image.jpg")
-print(f"AI Result: {result}")
-# Output: {'class_name': 'plastic_pet', 'confidence': 0.85}
-```
-
----
 
 ## 📝 Adding New Services
 

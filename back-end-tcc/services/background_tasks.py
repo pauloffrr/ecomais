@@ -187,11 +187,9 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
             # Update user's total points (atomic)
             user = db.query(User).filter(User.id == discard.user_id).first()
             if user:
-                user.total_points += points
                 user.total_discards += 1
                 logger.info(
-                    f"Awarded {points} points to user {user.id}. "
-                    f"New total: {user.total_points}"
+                    f"Awarded {points} points to user {user.id}."
                 )
 
             discard.points_applied = True

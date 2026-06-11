@@ -158,18 +158,27 @@ const getMonthlyGoal = (monthPoints, userPoints) => {
 
 const calculateStats = ({ discards, rewards, user }) => {
   const totalWeightKg = discards.reduce((sum, discard) => sum + Number(discard.weight_grams ?? 0), 0) / 1000;
-  const totalPoints =
-    Number(user?.total_points) ||
-    rewards.reduce((sum, reward) => sum + Number(reward.points ?? 0), 0) ||
-    discards.reduce((sum, discard) => sum + Number(discard.points_awarded ?? 0), 0);
+  const ledgerBalance = rewards.reduce((sum, reward) => sum + Number(reward.points ?? 0), 0);
+  const availablePoints =
+    user?.total_points != null
+      ? Number(user.total_points)
+      : ledgerBalance;
+  const earnedPointsFromLedger = rewards
+    .filter((reward) => Number(reward.points ?? 0) > 0)
+    .reduce((sum, reward) => sum + Number(reward.points ?? 0), 0);
+  const earnedPoints =
+    rewards.length > 0
+      ? earnedPointsFromLedger
+      : discards.reduce((sum, discard) => sum + Number(discard.points_awarded ?? 0), 0) ||
+        availablePoints;
   const spentPoints = rewards
     .filter((reward) => Number(reward.points ?? 0) < 0)
     .reduce((sum, reward) => sum + Math.abs(Number(reward.points ?? 0)), 0);
   const monthPoints = getMonthlyPoints(discards);
-  const monthlyGoal = getMonthlyGoal(monthPoints, totalPoints);
+  const monthlyGoal = getMonthlyGoal(monthPoints, earnedPoints);
   const monthlyProgress = Math.min(100, Math.round((monthPoints / monthlyGoal) * 100));
   const months = new Set(discards.map((discard) => new Date(discard.created_at).toISOString().slice(0, 7)));
-  const monthlyAverage = months.size ? totalPoints / months.size : totalPoints;
+  const monthlyAverage = months.size ? earnedPoints / months.size : earnedPoints;
   const materialCount = discards.reduce((acc, discard) => {
     const name = getMaterialLabel(discard.material_name);
     acc[name] = (acc[name] ?? 0) + 1;
@@ -178,15 +187,15 @@ const calculateStats = ({ discards, rewards, user }) => {
   const topMaterial = Object.entries(materialCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'Sem descartes';
 
   return {
-    availablePoints: totalPoints - spentPoints,
+    availablePoints,
     co2SavedKg: totalWeightKg * CO2_KG_PER_RECYCLED_KG,
+    earnedPoints,
     monthlyAverage,
     monthlyGoal,
     monthlyProgress,
     monthPoints,
     spentPoints,
     topMaterial,
-    totalPoints,
     totalRecycled: discards.length,
   };
 };
@@ -286,11 +295,11 @@ export default function HistoryScreen({ navigation }) {
   const summary = useMemo(
     () => ({
       label: 'IMPACTO TOTAL',
-      value: `${formatNumber(stats.totalPoints)} Pontos ganhos`,
+      value: `${formatNumber(stats.earnedPoints)} Pontos ganhos`,
       goal: `Meta Mensal: ${formatNumber(stats.monthlyGoal)} pts`,
       progress: stats.monthlyProgress,
     }),
-    [stats.monthlyGoal, stats.monthlyProgress, stats.totalPoints]
+    [stats.earnedPoints, stats.monthlyGoal, stats.monthlyProgress]
   );
 
   const activities = useMemo(

@@ -131,7 +131,6 @@ def redeem_reward(
         )
 
     coupon_code = _generate_coupon_code()
-    user.total_points -= points_required
     transaction = Reward(
         user_id=user.id,
         points=-points_required,
@@ -143,6 +142,7 @@ def redeem_reward(
     try:
         db.commit()
         db.refresh(transaction)
+        db.refresh(user)
     except Exception:
         db.rollback()
         logger.exception("Failed to redeem reward %s for user %s", reward_id, user.id)

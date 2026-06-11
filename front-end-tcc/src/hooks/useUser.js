@@ -6,14 +6,13 @@ import { useAuth } from './useAuth';
 const shouldRetry = (error) => !error?.response && !isCanceledRequest(error);
 
 export const useUser = () => {
-  const { logout, updateUser, userId } = useAuth();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(Boolean(userId));
+  const { logout, updateUser, user, userId } = useAuth();
+  const [loading, setLoading] = useState(Boolean(userId && !user));
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
   const loadUser = useCallback(
-    async ({ refresh = false, retry = true } = {}) => {
+    async ({ refresh = false, retry = true, silent = false } = {}) => {
       if (!userId) {
         setError(new Error('USER_ID_NOT_FOUND'));
         setLoading(false);
@@ -21,11 +20,10 @@ export const useUser = () => {
       }
 
       if (refresh) setRefreshing(true);
-      else setLoading(true);
+      else if (!silent) setLoading(true);
 
       try {
         const data = await userService.getUserById(userId);
-        setUser(data);
         setError(null);
         await updateUser(data);
         return data;
@@ -38,14 +36,14 @@ export const useUser = () => {
         }
 
         if (retry && shouldRetry(requestError)) {
-          return loadUser({ refresh, retry: false });
+          return loadUser({ refresh, retry: false, silent });
         }
 
         setError(requestError);
         return null;
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (!silent) setLoading(false);
+        if (refresh) setRefreshing(false);
       }
     },
     [logout, updateUser, userId]

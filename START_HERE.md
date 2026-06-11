@@ -9,10 +9,11 @@ Welcome to your refactored Eco Mais MVP! This guide will get you running in 5 mi
 ### 1. Install Dependencies (2 min)
 ```bash
 cd /Users/pauloed/Documents/Eco_Mais
+cd back-end-tcc
 
 # Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 
 # Install all dependencies (no Redis/Celery needed!)
 pip install -r requirements.txt
@@ -136,25 +137,25 @@ print(f"Session Token: {session.session_token}")
 ## 📂 Key Files You Should Know
 
 ### Core Application
-- **`main.py`** - FastAPI application entry point
-- **`models.py`** - Database schema (8 tables)
-- **`database.py`** - DB connection management
-- **`config.py`** - All configuration settings
+- **`back-end-tcc/main.py`** - FastAPI application entry point
+- **`back-end-tcc/models.py`** - Database schema (8 tables)
+- **`back-end-tcc/database.py`** - DB connection management
+- **`back-end-tcc/config.py`** - All configuration settings
 
 ### Services (Business Logic)
-- **`services/background_tasks.py`** - AI processing, image saving
-- **`services/security_service.py`** - HMAC authentication
-- **`services/validation_service.py`** - Triple validation
+- **`back-end-tcc/services/background_tasks.py`** - AI processing, image saving
+- **`back-end-tcc/services/security_service.py`** - HMAC authentication
+- **`back-end-tcc/services/validation_service.py`** - Triple validation
 
 ### API Layer
-- **`api/v1/endpoints/upload.py`** - Upload & heartbeat endpoints
-- **`api/v1/schemas/bin.py`** - Request/response models
+- **`back-end-tcc/api/v1/endpoints/upload.py`** - Upload & heartbeat endpoints
+- **`back-end-tcc/api/v1/schemas/bin.py`** - Request/response models
 
 ### Documentation
 - **`MVP_REFACTORING.md`** - ⭐ What changed and why
 - **`README.md`** - Full project documentation
 - **`QUICK_REFERENCE.md`** - One-page cheat sheet
-- **`services/README.md`** - Services layer docs
+- **`back-end-tcc/services/README.md`** - Services layer docs
 
 ---
 
@@ -291,7 +292,7 @@ Request → /v1/bin/upload
 
 ### Immediate (REST OF THIS WEEK)
 1. ✅ Get the API running (you just did this!)
-2. Replace `mock_ai_classification()` with real model
+2. Add the trained YOLO model at `back-end-tcc/ml/models/recyclable_classifier.pt`
 3. Test with real ESP32 hardware
 
 ### Short Term (NEXT 1-2 WEEKS)
@@ -384,6 +385,6 @@ Checklist:
 
 **Quick Links:**
 - 📖 Full Docs: [README.md](README.md)
-- 🔧 Services Docs: [services/README.md](services/README.md)
+- 🔧 Services Docs: [back-end-tcc/services/README.md](back-end-tcc/services/README.md)
 - 📋 Quick Ref: [QUICK_REFERENCE.md](QUICK_REFERENCE.md)
 - 🎯 Changes Made: [MVP_REFACTORING.md](MVP_REFACTORING.md)

@@ -1,3 +1,36 @@
+export const featuredRewards = [
+  {
+    id: 'monthly-transit-pass',
+    partner: 'Transporte Publico',
+    category: 'transport',
+    title: 'Passe Livre Mensal',
+    description: 'Troque seus pontos por 30 dias de transporte urbano.',
+    pointsRequired: 1200,
+    actionLabel: 'Resgatar recompensa',
+    visual: 'bus',
+  },
+  {
+    id: 'plant-ten-trees',
+    partner: 'Meta Sustentavel',
+    category: 'sustainability',
+    title: 'Plantar 10 Arvores',
+    description: 'Contribuicao direta para projeto de reflorestamento nacional.',
+    pointsRequired: 450,
+    actionLabel: 'Resgatar',
+    visual: 'trees',
+  },
+  {
+    id: 'free-coffee',
+    partner: 'Parceiro Cafe',
+    category: 'food',
+    title: 'Cafe Gratis',
+    description: 'Ganhe 1 cafe expresso em cafeterias parceiras.',
+    pointsRequired: 150,
+    actionLabel: 'Resgatar',
+    visual: 'coffee',
+  },
+];
+
 export const coupons = [
   {
     id: 'ifood-20-off',
@@ -5,7 +38,7 @@ export const coupons = [
     category: 'food',
     title: '20% OFF em Pedido',
     description: 'Desconto valido em restaurantes participantes.',
-    points: 250,
+    pointsRequired: 250,
   },
   {
     id: 'uber-15-off',
@@ -13,7 +46,7 @@ export const coupons = [
     category: 'transport',
     title: 'R$15 OFF na Corrida',
     description: 'Desconto em viagens urbanas.',
-    points: 800,
+    pointsRequired: 800,
   },
   {
     id: 'mercado-livre-free-shipping',
@@ -21,7 +54,7 @@ export const coupons = [
     category: 'shopping',
     title: 'Frete Gratis',
     description: 'Cupom valido em produtos selecionados.',
-    points: 500,
+    pointsRequired: 500,
   },
   {
     id: 'outback-dessert',
@@ -29,7 +62,7 @@ export const coupons = [
     category: 'food',
     title: 'Sobremesa Gratis',
     description: 'Ganhe sobremesa na compra de prato principal.',
-    points: 300,
+    pointsRequired: 300,
   },
   {
     id: 'natura-sustainable-off',
@@ -37,7 +70,7 @@ export const coupons = [
     category: 'sustainability',
     title: '15% OFF Sustentavel',
     description: 'Desconto em produtos eco-friendly.',
-    points: 600,
+    pointsRequired: 600,
   },
   {
     id: 'spotify-premium-month',
@@ -45,7 +78,7 @@ export const coupons = [
     category: 'experiences',
     title: '1 Mes Premium',
     description: 'Assinatura gratuita por 30 dias.',
-    points: 1000,
+    pointsRequired: 1000,
   },
   {
     id: 'bike-itau-one-hour',
@@ -53,7 +86,7 @@ export const coupons = [
     category: 'transport',
     title: '1 Hora Gratis',
     description: 'Mobilidade urbana sustentavel.',
-    points: 100,
+    pointsRequired: 100,
   },
   {
     id: 'tok-stok-25-off',
@@ -61,6 +94,6 @@ export const coupons = [
     category: 'shopping',
     title: 'R$25 OFF',
     description: 'Cupom valido para itens sustentaveis.',
-    points: 750,
+    pointsRequired: 750,
   },
 ];

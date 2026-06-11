@@ -2,7 +2,7 @@ import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BookOpen, Code2, FileText, Package, ShieldCheck } from 'lucide-react-native';
 import MenuItem from '../components/MenuItem';
 import { BackHeader } from '../components/ScreenHeader';
-import { appInformation } from '../mocks/profileData';
+import { appInformation } from '../data/appContent';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 

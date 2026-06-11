@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   ActivityIndicator,
   Alert,
@@ -190,6 +191,16 @@ export default function HomeScreen({ navigation }) {
       refetchRewards({ refresh: true }),
     ]);
   }, [refetchDiscards, refetchRewards, refetchUser]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const syncUser = () => refetchUser({ silent: true });
+      syncUser();
+
+      const interval = setInterval(syncUser, 10000);
+      return () => clearInterval(interval);
+    }, [refetchUser])
+  );
 
   const handleScan = () => {
     navigation.navigate('Scanner', { startSessionOnScan: true });

@@ -125,7 +125,7 @@ def test_process_image_with_ai_low_confidence_flags_validation_error(monkeypatch
     db.commit = MagicMock()
     db.rollback = MagicMock()
 
-    monkeypatch.setattr(background_tasks, "mock_ai_classification", lambda _: {"class_name": "plastic_pet", "confidence": 0.4})
+    monkeypatch.setattr(background_tasks, "run_ai_classification", lambda _: {"class_name": "plastic_pet", "confidence": 0.4})
 
     background_tasks.process_image_with_ai(discard_id=100, image_path="/tmp/image.jpg", db=db)
 
@@ -190,7 +190,7 @@ def test_process_image_with_ai_success_awards_points(monkeypatch):
     db.rollback = MagicMock()
     db.add = MagicMock()
 
-    monkeypatch.setattr(background_tasks, "mock_ai_classification", lambda _: {"class_name": "plastic_pet", "confidence": 0.95})
+    monkeypatch.setattr(background_tasks, "run_ai_classification", lambda _: {"class_name": "plastic_pet", "confidence": 0.95})
 
     background_tasks.process_image_with_ai(discard_id=101, image_path="/tmp/image.jpg", db=db)
 
@@ -198,7 +198,7 @@ def test_process_image_with_ai_success_awards_points(monkeypatch):
     assert discard.is_validated is True
     assert discard.points_awarded == 120
     assert discard.points_applied is True
-    assert user.total_points == 120
+    assert user.total_points == 0
     assert user.total_discards == 1
     assert db.add.called
     assert any(isinstance(call.args[0], Reward) for call in db.add.call_args_list)

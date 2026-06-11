@@ -6,7 +6,7 @@ import GradientButton from '../components/GradientButton';
 import { BackHeader } from '../components/ScreenHeader';
 import SupportCard from '../components/SupportCard';
 import TextInputField from '../components/TextInputField';
-import { supportData } from '../mocks/profileData';
+import { supportData } from '../data/appContent';
 import * as supportService from '../services/supportService';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';

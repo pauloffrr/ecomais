@@ -30,18 +30,12 @@ Eco Mais is a smart recycling system that combines **ESP32-CAM hardware**, **AI-
 
 ```
 eco_mais/
-├── models.py              # SQLAlchemy database models ✓
-├── database.py            # Database connection & session management ✓
-├── config.py              # Environment configuration with Pydantic ✓
-├── requirements.txt       # Python dependencies ✓
-├── .env.example           # Environment variables template ✓
-├── ARCHITECTURE.md        # Complete system architecture guide ✓
-│
-├── api/v1/endpoints/      # API route handlers (to be implemented)
-├── services/              # Business logic layer (to be implemented)
-├── ml/models/             # AI model files (to be trained)
-├── migrations/            # Alembic database migrations
-└── tests/                 # Pytest test suite
+├── back-end-tcc/          # FastAPI API, services, models, and tests
+├── front-end-tcc/         # Expo/React Native application
+├── firmware/              # ESP32 code
+├── docs/                  # Shared diagrams and documentation
+├── skills/                # Skills and generated documentation
+└── ARCHITECTURE.md        # Complete system architecture guide
 ```
 
 ---
@@ -59,10 +53,11 @@ eco_mais/
 ```bash
 # Clone the repository
 cd Eco_Mais
+cd back-end-tcc
 
 # Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -345,8 +340,8 @@ pytest tests/test_security.py -v
 ## 📖 Documentation
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete system design, security flows, validation logic
-- **[models.py](models.py)** - SQLAlchemy database models with relationships
-- **[config.py](config.py)** - Environment configuration reference
+- **[models.py](back-end-tcc/models.py)** - SQLAlchemy database models with relationships
+- **[config.py](back-end-tcc/config.py)** - Environment configuration reference
 
 ---
 

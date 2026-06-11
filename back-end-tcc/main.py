@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import get_settings
-from database import check_db_connection
+from database import check_db_connection, ensure_reward_balance_triggers
 from api.v1.endpoints import admin, auth, discards, materials, rewards, sessions, upload, users
 
 # Setup logging
@@ -38,6 +38,7 @@ async def lifespan(app: FastAPI):
     if not check_db_connection():
         logger.error("Database connection failed! Please check your configuration.")
     else:
+        ensure_reward_balance_triggers()
         logger.info("Database connection successful")
 
     yield
