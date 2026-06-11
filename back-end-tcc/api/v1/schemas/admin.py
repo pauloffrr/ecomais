@@ -32,6 +32,7 @@ class FlaggedDiscardResponse(BaseModel):
     bin_id: int
     weight_grams: float
     image_path: str | None = None
+    ai_classification: str | None = None
     ai_confidence: float | None = None
     validation_errors: str | None = None
     created_at: datetime

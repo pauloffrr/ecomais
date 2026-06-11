@@ -8,8 +8,11 @@ htmlcov/
 logs/
 uploads/
 storage/
+ml/dataset/
+ml/runs/
 ml/models/*.h5
 ml/models/*.pt
 ml/models/*.pth
 ml/models/*.onnx
 ml/models/*.tflite
+yolov8*.pt

@@ -11,14 +11,17 @@ import io
 
 from models import Discard, User, Reward, ActiveSession, SessionStatus, Material
 from config import get_settings
+from database import SessionLocal
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 ai_inference_lock = Lock()
 
 try:
+    import torch
     from ultralytics import YOLO
 except ImportError:
+    torch = None
     YOLO = None
 
 yolo_model = None
@@ -26,7 +29,17 @@ if YOLO is not None and settings.ENABLE_AI_CLASSIFICATION:
     model_path = Path(settings.AI_MODEL_PATH)
     if model_path.exists():
         try:
-            yolo_model = YOLO(str(model_path))
+            original_torch_load = torch.load
+
+            def torch_load_compatible(*load_args, **load_kwargs):
+                load_kwargs.setdefault("weights_only", False)
+                return original_torch_load(*load_args, **load_kwargs)
+
+            torch.load = torch_load_compatible
+            try:
+                yolo_model = YOLO(str(model_path))
+            finally:
+                torch.load = original_torch_load
             logger.info("YOLOv8 model loaded from %s", model_path)
         except Exception as exc:
             logger.warning("Failed to load YOLOv8 model from %s: %s", model_path, exc)
@@ -100,7 +113,8 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
             logger.warning(f"No material found for class {ai_result['class_name']}")
             discard.vision_validated = False
             discard.validation_errors = "Material class not found in database"
-            discard.is_validated = True  # Tira do status Pendente (Recusado)
+            discard.is_validated = False
+            discard.flagged_as_suspicious = True
             discard.validated_at = datetime.utcnow()
             db.commit()
             return
@@ -112,7 +126,7 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
             )
             discard.vision_validated = False
             discard.validation_errors = f"AI confidence too low: {ai_result['confidence']}"
-            discard.is_validated = True  # Tira do status Pendente (Recusado)
+            discard.is_validated = False
             discard.validated_at = datetime.utcnow()
 
             # Flag for manual review if close to threshold
@@ -135,30 +149,32 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
             discard.is_validated = True
             discard.validated_at = datetime.utcnow()
 
-            # Points = (weight_kg) * (points_per_kg)
-            weight_kg = discard.weight_grams / 1000.0
-            points = int(weight_kg * material.points_per_kg)
-            discard.points_awarded = points
+            if not discard.points_applied:
+                # Points = (weight_kg) * (points_per_kg)
+                weight_kg = discard.weight_grams / 1000.0
+                points = int(weight_kg * material.points_per_kg)
+                discard.points_awarded = points
 
-            # Create reward transaction
-            reward = Reward(
-                user_id=discard.user_id,
-                points=points,
-                transaction_type="discard",
-                discard_id=discard.id,
-                description=f"Recycled {material.name} ({discard.weight_grams}g)"
-            )
-            db.add(reward)
-
-            # Update user's total points (atomic)
-            user = db.query(User).filter(User.id == discard.user_id).first()
-            if user:
-                user.total_discards += 1
-                logger.info(
-                    f"Awarded {points} points to user {user.id}."
+                # Create reward transaction
+                reward = Reward(
+                    user_id=discard.user_id,
+                    points=points,
+                    transaction_type="discard",
+                    discard_id=discard.id,
+                    description=f"Recycled {material.name} ({discard.weight_grams}g)"
                 )
+                db.add(reward)
 
-            discard.points_applied = True
+                # Update user's total points (atomic)
+                user = db.query(User).filter(User.id == discard.user_id).first()
+                if user:
+                    user.total_points += points
+                    user.total_discards += 1
+                    logger.info(
+                        f"Awarded {points} points to user {user.id}."
+                    )
+
+                discard.points_applied = True
 
             session = discard.session
             if session:
@@ -178,11 +194,21 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
             discard = db.query(Discard).filter(Discard.id == discard_id).first()
             if discard:
                 discard.validation_errors = f"AI processing error: {str(e)}"
-                discard.is_validated = True # Tira do status Pendente (Recusado por erro)
+                discard.is_validated = False
+                discard.flagged_as_suspicious = True
                 discard.validated_at = datetime.utcnow()
                 db.commit()
         except:
             pass
+
+
+def process_image_with_ai_background(discard_id: int, image_path: str):
+    """Run AI processing with a fresh DB session for FastAPI BackgroundTasks."""
+    db = SessionLocal()
+    try:
+        process_image_with_ai(discard_id, image_path, db)
+    finally:
+        db.close()
 
 
 def run_ai_classification(image_path: str) -> dict:

@@ -161,6 +161,7 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
     REDIS_PASSWORD: Optional[str] = None
+    ENABLE_CELERY_TASKS: bool = False
     CELERY_TASK_ALWAYS_EAGER: bool = False
     CELERY_TASK_EAGER_PROPAGATES: bool = True
 

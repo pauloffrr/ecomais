@@ -50,6 +50,7 @@ def _apply_reward_for_discard(db: Session, discard: Discard) -> None:
 
     user = db.query(User).filter(User.id == discard.user_id).first()
     if user:
+        user.total_points += points
         user.total_discards += 1
 
     discard.points_applied = True
@@ -101,6 +102,7 @@ def list_flagged_discards(
             bin_id=discard.bin_id,
             weight_grams=discard.weight_grams,
             image_path=discard.image_path,
+            ai_classification=discard.ai_classification,
             ai_confidence=discard.ai_confidence,
             validation_errors=discard.validation_errors,
             created_at=discard.created_at,
@@ -128,11 +130,13 @@ def resolve_flagged_discard(
 
     if payload.approve:
         discard.is_validated = True
+        discard.vision_validated = True
         discard.validated_at = datetime.now(timezone.utc)
         _apply_reward_for_discard(db, discard)
     else:
         discard.is_validated = False
-        discard.validated_at = None
+        discard.vision_validated = False
+        discard.validated_at = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(discard)
@@ -143,6 +147,7 @@ def resolve_flagged_discard(
         bin_id=discard.bin_id,
         weight_grams=discard.weight_grams,
         image_path=discard.image_path,
+        ai_classification=discard.ai_classification,
         ai_confidence=discard.ai_confidence,
         validation_errors=discard.validation_errors,
         created_at=discard.created_at,

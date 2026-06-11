@@ -28,7 +28,7 @@ from services.validation_service import (
 )
 from services.background_tasks import (
     save_image_to_disk,
-    process_image_with_ai,
+    process_image_with_ai_background,
     cleanup_expired_sessions,
     check_duplicate_image
 )
@@ -231,7 +231,7 @@ async def upload_discard(
         # ===== STEP 7: SCHEDULE AI PROCESSING IN BACKGROUND =====
         # This runs AFTER the response is sent to ESP32
         celery_success = False
-        if process_image_with_ai_task is not None:
+        if settings.ENABLE_CELERY_TASKS and process_image_with_ai_task is not None:
             try:
                 process_image_with_ai_task.delay(temp_discard.id, image_path)
                 celery_success = True
@@ -240,10 +240,9 @@ async def upload_discard(
                 
         if not celery_success:
             background_tasks.add_task(
-                process_image_with_ai,
+                process_image_with_ai_background,
                 discard_id=temp_discard.id,
                 image_path=image_path,
-                db=db
             )
 
         # Update session validation checkpoints

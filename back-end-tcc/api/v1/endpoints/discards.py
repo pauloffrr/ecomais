@@ -17,6 +17,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def get_discard_validation_status(discard: Discard) -> str:
+    if discard.flagged_as_suspicious and not discard.admin_reviewed:
+        return "manual_review"
+    if discard.is_validated and discard.vision_validated and discard.points_applied:
+        return "approved"
+    if discard.validated_at is not None or discard.validation_errors:
+        return "rejected"
+    return "pending"
+
+
 @router.get("/history", response_model=DiscardHistoryResponse)
 def get_discard_history(
     skip: int = Query(0, ge=0),
@@ -33,6 +43,14 @@ def get_discard_history(
             Discard.weight_grams,
             Discard.points_awarded,
             Discard.is_validated,
+            Discard.vision_validated,
+            Discard.flagged_as_suspicious,
+            Discard.admin_reviewed,
+            Discard.ai_classification,
+            Discard.ai_confidence,
+            Discard.validation_errors,
+            Discard.validated_at,
+            Discard.points_applied,
             Discard.created_at,
             material_name,
         )
@@ -50,6 +68,12 @@ def get_discard_history(
             weight_grams=row.weight_grams,
             points_awarded=row.points_awarded,
             is_validated=row.is_validated,
+            validation_status=get_discard_validation_status(row),
+            vision_validated=row.vision_validated,
+            flagged_as_suspicious=row.flagged_as_suspicious,
+            ai_classification=row.ai_classification,
+            ai_confidence=row.ai_confidence,
+            validation_errors=row.validation_errors,
             created_at=row.created_at,
             material_name=row.material_name,
         )

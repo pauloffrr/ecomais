@@ -198,7 +198,7 @@ def test_process_image_with_ai_success_awards_points(monkeypatch):
     assert discard.is_validated is True
     assert discard.points_awarded == 120
     assert discard.points_applied is True
-    assert user.total_points == 0
+    assert user.total_points == 120
     assert user.total_discards == 1
     assert db.add.called
     assert any(isinstance(call.args[0], Reward) for call in db.add.call_args_list)
