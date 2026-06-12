@@ -15,7 +15,6 @@ def main():
 
     now_utc = datetime.now(timezone.utc)
     
-    # Mudando o token para 1000 para garantir uma sessão virgem e sem IDs velhos presos!
     session = db.query(ActiveSession).filter(ActiveSession.session_token == "SESSAO_REAL_1000").first()
 
     if session:

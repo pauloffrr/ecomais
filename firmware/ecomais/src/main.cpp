@@ -8,7 +8,6 @@
 #include "secrets.h"
 
 // Pinos para ESP32-WROVER-KIT / placas WROVER com conector de camera.
-// Este mapa e diferente do ESP32-CAM AI-Thinker.
 #define PWDN_GPIO_NUM     -1
 #define RESET_GPIO_NUM    -1
 #define XCLK_GPIO_NUM     21
@@ -26,11 +25,10 @@
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
-// Os dados de Wi-Fi agora vêm do arquivo secrets.h (que não vai pro GitHub)
 const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASSWORD;
 
-// Gera a criptografia HMAC-SHA256 (Idêntica ao security_service.py)
+// Gera a criptografia HMAC-SHA256
 String generateHMAC(String payload, String key) {
   mbedtls_md_context_t ctx;
   mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
@@ -59,7 +57,7 @@ void setup() {
   
   Serial.println("\n--- INICIANDO ESP32 WROVER ---");
   
-  // Verifica se a memória extra (PSRAM) está funcionando
+  
   if (psramFound()) {
     Serial.println("✅ SUCESSO: PSRAM Encontrada! Temos memoria de sobra para as fotos.");
   } else {
@@ -88,8 +86,8 @@ void setup() {
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 10000000;
   config.pixel_format = PIXFORMAT_JPEG;
-  config.frame_size = FRAMESIZE_QVGA; // Comeca leve para validar a camera com mais estabilidade.
-  config.jpeg_quality = 12;           // Qualidade boa (menor numero = melhor qualidade).
+  config.frame_size = FRAMESIZE_QVGA; 
+  config.jpeg_quality = 12;           
   config.fb_count = 1;
 
   esp_err_t err = esp_camera_init(&config);
@@ -101,7 +99,6 @@ void setup() {
     if (sensor) {
       Serial.printf("Sensor detectado. PID: 0x%02x\n", sensor->id.PID);
 
-      // Ajustes para reduzir tom esverdeado e estabilizar a imagem do OV3660/OV2640.
       sensor->set_whitebal(sensor, 1);
       sensor->set_awb_gain(sensor, 1);
       sensor->set_wb_mode(sensor, 0);       // 0 = auto
@@ -128,7 +125,6 @@ void setup() {
   Serial.print("Endereço IP da sua lixeira: ");
   Serial.println(WiFi.localIP());
 
-  // Precisamos da hora exata para a assinatura HMAC não dar erro de "Replay Attack"
   Serial.print("Sincronizando relógio via Servidor Mundial (NTP)...");
   configTime(0, 0, "pool.ntp.org", "time.nist.gov");
   while (time(nullptr) < 1000000000) {
@@ -142,7 +138,7 @@ void loop() {
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("\n--- Preparando para enviar dados da lixeira (Upload) ---");
     Serial.println("Aguardando 10 segundos para dar tempo de voce criar a sessao no App...");
-    delay(10000); // Pausa de 10 segundos para você ler o QR Code no app
+    delay(10000); 
     
     Serial.println("\n--- Enviando peso e foto simulada para o Backend ---");
     
@@ -150,11 +146,9 @@ void loop() {
     http.begin(API_URL);
     http.addHeader("Content-Type", "application/json");
     
-    // 1. Pega a hora atual exata
     time_t now = time(nullptr);
     String timestamp = String(now);
     
-    // 2. Tira a foto de verdade com a câmera!
     Serial.println("📸 Tirando foto do descarte...");
     for (int i = 0; i < 3; i++) {
       camera_fb_t * warmup = esp_camera_fb_get();
@@ -166,7 +160,6 @@ void loop() {
 
     camera_fb_t * fb = esp_camera_fb_get();
     
-    // Tenta de novo se o primeiro frame falhar (comum por falta de pico de energia)
     if (!fb) {
       Serial.println("❌ Falha ao capturar. Tentando novamente em 2 segundos...");
       delay(2000);
@@ -180,24 +173,19 @@ void loop() {
       base64Image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
     } else {
       Serial.println("✅ Foto capturada com sucesso!");
-      // Converte a foto real para Base64 para poder trafegar no JSON
       base64Image = base64::encode(fb->buf, fb->len);
-      esp_camera_fb_return(fb); // Libera a memória da câmera
+      esp_camera_fb_return(fb); 
     }
     
-    // Monta o pacote com o peso simulado e a FOTO REAL!
     String jsonPayload = "{\"weight_grams\":250.5,\"image\":\"" + base64Image + "\"}";
     
-    // 3. O SEGREDO DO PROJETO: Assinatura de hardware!
     String message = String(BIN_ID) + timestamp + jsonPayload;
     String signature = generateHMAC(message, HARDWARE_API_KEY);
     
-    // 4. Adiciona os cabeçalhos de segurança
     http.addHeader("X-Bin-ID", BIN_ID);
     http.addHeader("X-Timestamp", timestamp);
     http.addHeader("X-Signature", signature);
     
-    // 5. Dispara para o seu computador
     int httpResponseCode = http.POST(jsonPayload);
     
     Serial.print("Código HTTP retornado: ");
@@ -207,7 +195,6 @@ void loop() {
     
     http.end();
 
-    // 6. Trava a placa para ela enviar apenas UMA vez e não estourar o limite Anti-Fraude de novo!
     Serial.println("\n--- Upload de hardware concluido! Aperte o botao EN/RST na placa se quiser simular outro descarte ---");
     while(true) { delay(1000); }
   }

@@ -72,21 +72,16 @@ def require_esp32_auth(
     Raises:
         HTTPException: If authentication fails
     """
-    # Get request body for signature verification
-    # Note: This is a simplification; in production, use request.body()
-    # but be careful with async/await and body consumption
-
-    # For now, we'll verify signature without body
-    # In production, you'd need to handle body reading carefully
+    
 
     logger.info(f"Authenticating bin: {x_bin_id}")
 
-    # Verify signature (simplified - see note above about body)
+    # Verify signature
     is_valid, bin, error_msg = verify_esp32_signature(
         bin_code=x_bin_id,
         timestamp=x_timestamp,
         signature=x_signature,
-        body=b"{}",  # Placeholder - see production note below
+        body=b"{}",  
         db=db,
         request_ip=request.client.host if request.client else None
     )
@@ -154,9 +149,7 @@ async def upload_discard(
         if not is_valid or not bin:
             raise HTTPException(status_code=401, detail=error_msg or "Authentication failed")
 
-        # ===== STEP 2: O "MATCH" (VINCULANDO HARDWARE AO USUÁRIO) =====
-        # O ESP32 não envia mais o token. O Backend atua como "Casamenteiro",
-        # buscando a sessão ativa mais recente usando apenas o ID da lixeira (bin.id).
+        
         is_valid, session, error_msg = validate_session(
             session_token=getattr(data, "session_token", None), # Será None, pois o ESP32 não envia mais
             bin_id=bin.id,
@@ -195,7 +188,6 @@ async def upload_discard(
             raise HTTPException(status_code=429, detail=error_msg)
 
         # ===== STEP 5: SAVE IMAGE TO DISK (Synchronous) =====
-        # Create a temporary discard record to get an ID for filename
         temp_discard = create_discard_record(
             session=session,
             bin=bin,
@@ -204,12 +196,10 @@ async def upload_discard(
             db=db
         )
 
-        # Save image and update discard with path
         image_path = save_image_to_disk(data.image, temp_discard.id)
         temp_discard.image_path = image_path
         db.commit()
 
-        # Check for duplicate images (optional, can be background task too)
         if settings.ENABLE_DUPLICATE_DETECTION:
             is_duplicate = check_duplicate_image(
                 user_id=session.user_id,
@@ -229,7 +219,6 @@ async def upload_discard(
         )
 
         # ===== STEP 7: SCHEDULE AI PROCESSING IN BACKGROUND =====
-        # This runs AFTER the response is sent to ESP32
         celery_success = False
         if settings.ENABLE_CELERY_TASKS and process_image_with_ai_task is not None:
             try:
