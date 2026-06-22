@@ -37,6 +37,8 @@ Testes:
 pytest -q
 pytest -m unit -q
 pytest -m integration -q
+pytest -m behavior -q
+pytest -m load -q
 ```
 
 Os caminhos de uploads, logs e modelos de IA são relativos a esta pasta. O
