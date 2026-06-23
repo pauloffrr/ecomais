@@ -55,16 +55,12 @@ if YOLO is None:
     yolo_model = None
 
 
-# ==================== IMAGE PROCESSING ====================
-
 def save_image_to_disk(image_base64: str, discard_id: int) -> str:
 
     try:
-        # Create uploads directory if it doesn't exist
         upload_dir = Path(settings.LOCAL_STORAGE_PATH)
         upload_dir.mkdir(parents=True, exist_ok=True)
 
-        # Decode base64 image
         image_data = base64.b64decode(image_base64)
         image = Image.open(io.BytesIO(image_data))
 
@@ -95,13 +91,11 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
     try:
         logger.info(f"Starting AI processing for discard {discard_id}")
 
-        # Get the discard record
         discard = db.query(Discard).filter(Discard.id == discard_id).first()
         if not discard:
             logger.error(f"Discard {discard_id} not found")
             return
 
-        # Executa a inferência real do YOLOv8 na imagem salva
         ai_result = run_ai_classification(image_path)
 
         discard.ai_classification = ai_result["class_name"]
@@ -138,7 +132,6 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
             db.commit()
             return
 
-        # AI validation passed
         discard.vision_validated = True
         discard.material_id = material.id
 
@@ -146,17 +139,14 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
             discard.weight_validated and
             discard.vision_validated):
 
-            # Calculate and award points
             discard.is_validated = True
             discard.validated_at = datetime.utcnow()
 
             if not discard.points_applied:
-                # Points = (weight_kg) * (points_per_kg)
                 weight_kg = discard.weight_grams / 1000.0
                 points = int(weight_kg * material.points_per_kg)
                 discard.points_awarded = points
 
-                # Create reward transaction
                 reward = Reward(
                     user_id=discard.user_id,
                     points=points,
@@ -166,7 +156,6 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
                 )
                 db.add(reward)
 
-                # Update user's total points (atomic)
                 user = db.query(User).filter(User.id == discard.user_id).first()
                 if user:
                     user.total_points += points
@@ -190,7 +179,6 @@ def process_image_with_ai(discard_id: int, image_path: str, db: Session):
         logger.error(f"Error processing AI for discard {discard_id}: {e}")
         db.rollback()
 
-        # Update discard with error
         try:
             discard = db.query(Discard).filter(Discard.id == discard_id).first()
             if discard:
@@ -238,13 +226,10 @@ def run_ai_classification(image_path: str) -> dict:
     return classification
 
 
-# ==================== SESSION CLEANUP ====================
-
 def cleanup_expired_sessions(db: Session):
     try:
         now = datetime.utcnow()
 
-        # Find all expired sessions still marked as ACTIVE
         expired_sessions = db.query(ActiveSession).filter(
             ActiveSession.status == SessionStatus.ACTIVE,
             ActiveSession.expires_at < now
@@ -252,7 +237,6 @@ def cleanup_expired_sessions(db: Session):
 
         count = len(expired_sessions)
         if count > 0:
-            # Mark as expired
             for session in expired_sessions:
                 session.status = SessionStatus.EXPIRED
 
@@ -273,8 +257,6 @@ def complete_session(session: ActiveSession):
     session.completed_at = datetime.utcnow()
 
 
-# ==================== IMAGE CLEANUP ====================
-
 def cleanup_old_images():
     try:
         upload_dir = Path(settings.LOCAL_STORAGE_PATH)
@@ -284,9 +266,7 @@ def cleanup_old_images():
         cutoff_date = datetime.utcnow() - timedelta(days=settings.IMAGE_RETENTION_DAYS)
         deleted_count = 0
 
-        # Iterate through image files
         for image_file in upload_dir.glob("discard_*.jpg"):
-            # Check file modification time
             file_mtime = datetime.fromtimestamp(image_file.stat().st_mtime)
 
             if file_mtime < cutoff_date:
@@ -299,8 +279,6 @@ def cleanup_old_images():
     except Exception as e:
         logger.error(f"Error cleaning up old images: {e}")
 
-
-# ==================== DUPLICATE IMAGE DETECTION ====================
 
 def check_duplicate_image(user_id: int, image_path: str, db: Session) -> bool:
     try:

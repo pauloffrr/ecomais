@@ -15,7 +15,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Configuration
 BASE_URL = "http://localhost:8000"
 BIN_CODE = "BIN_TEST_001"
 HARDWARE_API_KEY = os.getenv("TEST_HARDWARE_API_KEY", "YOUR_API_KEY_HERE")
@@ -34,7 +33,6 @@ def generate_hmac_signature(bin_code: str, timestamp: str, body_str: str, api_ke
 
 def create_mock_image() -> str:
     """Create a small mock image (1x1 pixel PNG) as base64"""
-    # Tiny 1x1 red pixel PNG
     png_bytes = bytes([
         0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
         0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
@@ -52,7 +50,6 @@ def create_real_session() -> str:
     """Authenticate as test user and create a real active session."""
     print("\n=== Creating Real User Session ===")
     
-    # 1. Login with test user (created by setup.py)
     login_data = {"username": "test@ecomais.com", "password": "password123"}
     login_resp = requests.post(f"{BASE_URL}/v1/auth/login", data=login_data)
     
@@ -62,7 +59,6 @@ def create_real_session() -> str:
         
     access_token = login_resp.json()["access_token"]
     
-    # 2. Start a recycling session
     headers = {"Authorization": f"Bearer {access_token}"}
     session_resp = requests.post(
         f"{BASE_URL}/v1/sessions/start",
@@ -92,7 +88,6 @@ def check_bin_upload(session_token: str):
     """Test /v1/bin/upload endpoint with HMAC signature"""
     print("\n=== Testing /v1/bin/upload ===")
 
-    # Prepare request
     timestamp = str(int(time.time()))
     body = {
         "session_token": session_token,
@@ -100,13 +95,10 @@ def check_bin_upload(session_token: str):
         "image": create_mock_image()
     }
 
-    # Serialize once and reuse the exact same string for signing and sending.
     body_str = json.dumps(body, separators=(",", ":"), ensure_ascii=False)
 
-    # Generate HMAC signature
     signature = generate_hmac_signature(BIN_CODE, timestamp, body_str, HARDWARE_API_KEY)
 
-    # Headers
     headers = {
         "X-Bin-ID": BIN_CODE,
         "X-Timestamp": timestamp,
@@ -114,7 +106,6 @@ def check_bin_upload(session_token: str):
         "Content-Type": "application/json"
     }
 
-    # Send request
     print(f"Sending request to {BASE_URL}/v1/bin/upload...")
     print(f"Headers: {headers}")
     print(f"Body (weight): {body['weight_grams']}g")
@@ -171,7 +162,6 @@ def main():
     print("Eco Mais API Test Script")
     print("=" * 60)
 
-    # Check if API is running
     try:
         health_ok = check_health()
         if not health_ok:
@@ -183,16 +173,13 @@ def main():
         print("   Start it with: uvicorn main:app --reload")
         return
 
-    # Run tests
     print("\n" + "=" * 60)
 
-    # Note: Upload and heartbeat tests will fail without proper setup
     print("\n⚠️  NOTE: To test upload/heartbeat endpoints:")
     print("   1. Run setup.py to create test data")
     print("   2. Update HARDWARE_API_KEY and SESSION_TOKEN in this script")
     print("   3. Run this script again")
 
-    # Uncomment these when you have valid credentials:
     check_bin_heartbeat()
     
     session_token = create_real_session()

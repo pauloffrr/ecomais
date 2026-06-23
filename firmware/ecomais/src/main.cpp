@@ -28,7 +28,6 @@
 const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASSWORD;
 
-// Gera a criptografia HMAC-SHA256
 String generateHMAC(String payload, String key) {
   mbedtls_md_context_t ctx;
   mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
@@ -64,7 +63,6 @@ void setup() {
     Serial.println("❌ ERRO: PSRAM nao encontrada. Verifique o platformio.ini.");
   }
 
-  // --- CONFIGURAÇÃO DA CÂMERA ---
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer = LEDC_TIMER_0;

@@ -13,7 +13,6 @@ export default function MilestoneCard({ nextLevelPoints, progressPercentage }) {
 
       <Text style={styles.description}>{nextLevelPoints} PONTOS ATÉ O NÍVEL 15</Text>
 
-      {/* Progress Bar */}
       <View style={styles.progressBarContainer}>
         <View
           style={[

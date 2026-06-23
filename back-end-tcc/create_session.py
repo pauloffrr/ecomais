@@ -5,7 +5,6 @@ from datetime import datetime, timedelta, timezone
 def main():
     db = SessionLocal()
     
-    # Busca o primeiro usuário e a lixeira de teste do banco de dados dinamicamente!
     user = db.query(User).first()
     smart_bin = db.query(SmartBin).filter(SmartBin.bin_code == "BIN_TEST_001").first()
     
@@ -21,14 +20,14 @@ def main():
         print("🔄 Sessão existente encontrada. Atualizando a validade para +24h...")
         session.expires_at = now_utc + timedelta(hours=24)
         session.status = SessionStatus.ACTIVE
-        session.bin_id = smart_bin.id # Garante que ela pertence à lixeira certa!
+        session.bin_id = smart_bin.id
     else:
         session = ActiveSession(
             session_token="SESSAO_REAL_1000",
             user_id=user.id,
             bin_id=smart_bin.id,
             started_at=now_utc,
-            expires_at=now_utc + timedelta(hours=24), # 24 horas de validade para testes!
+            expires_at=now_utc + timedelta(hours=24),
             status=SessionStatus.ACTIVE,
             qr_code_scanned=True
         )

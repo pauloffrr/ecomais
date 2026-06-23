@@ -15,7 +15,6 @@ from config import get_settings
 from database import check_db_connection, ensure_reward_balance_triggers
 from api.v1.endpoints import admin, auth, discards, materials, rewards, sessions, upload, users
 
-# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -25,18 +24,11 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
-# ==================== STARTUP / SHUTDOWN ====================
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Lifespan context manager for startup and shutdown events.
-    """
-    # Startup
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
 
-    # Check database connection
     if not check_db_connection():
         logger.error("Database connection failed! Please check your configuration.")
     else:
@@ -45,11 +37,8 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown
     logger.info("Shutting down application...")
 
-
-# ==================== APPLICATION ====================
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -59,8 +48,6 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
-
-# ==================== CORS ====================
 
 app.add_middleware(
     CORSMiddleware,
@@ -75,21 +62,14 @@ app.add_middleware(
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
 
-# ==================== ROUTES ====================
-
 uploads_dir = Path(settings.LOCAL_STORAGE_PATH)
 if not uploads_dir.is_absolute():
     uploads_dir = Path(__file__).resolve().parent / uploads_dir
 uploads_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads/images", StaticFiles(directory=str(uploads_dir)), name="upload-images")
 
-# Health check
 @app.get("/health")
 async def health_check():
-    """
-    Health check endpoint.
-    Returns server status and database connectivity.
-    """
     db_ok = check_db_connection()
     return {
         "status": "healthy" if db_ok else "unhealthy",
@@ -102,9 +82,6 @@ async def health_check():
 
 @app.get("/")
 async def root():
-    """
-    Root endpoint with API information.
-    """
     return {
         "app": settings.APP_NAME,
         "version": settings.APP_VERSION,
@@ -113,7 +90,6 @@ async def root():
     }
 
 
-# Include routers
 app.include_router(
     auth.router,
     prefix="/v1/auth",
@@ -161,8 +137,6 @@ app.include_router(
     prefix="/v1/bin",
     tags=["ESP32 Hardware"]
 )
-
-# ==================== MAIN ====================
 
 if __name__ == "__main__":
     import uvicorn

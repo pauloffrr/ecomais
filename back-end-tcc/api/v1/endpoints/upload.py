@@ -44,10 +44,7 @@ settings = get_settings()
 router = APIRouter()
 
 
-# ==================== HELPER FUNCTIONS ====================
-
 async def get_request_body(request: Request) -> bytes:
-    """Get raw request body for HMAC verification"""
     return await request.body()
 
 
@@ -58,25 +55,8 @@ def require_esp32_auth(
     x_signature: str = Header(..., alias="X-Signature"),
     db: Session = Depends(get_db)
 ):
-    """
-    Dependency for ESP32 authentication via HMAC signature.
-
-    Required Headers:
-        X-Bin-ID: Bin identifier
-        X-Timestamp: Unix timestamp
-        X-Signature: HMAC-SHA256 signature
-
-    Returns:
-        SmartBin: Authenticated bin object
-
-    Raises:
-        HTTPException: If authentication fails
-    """
-    
-
     logger.info(f"Authenticating bin: {x_bin_id}")
 
-    # Verify signature
     is_valid, bin, error_msg = verify_esp32_signature(
         bin_code=x_bin_id,
         timestamp=x_timestamp,
@@ -93,8 +73,6 @@ def require_esp32_auth(
     return bin
 
 
-# ==================== ENDPOINTS ====================
-
 @router.post("/upload", response_model=BinUploadResponse)
 async def upload_discard(
     data: BinUploadRequest,
@@ -105,36 +83,9 @@ async def upload_discard(
     x_signature: str = Header(..., alias="X-Signature"),
     db: Session = Depends(get_db)
 ):
-    """
-    **ESP32 Endpoint: Upload Discard with Triple Validation**
-
-    Flow:
-    1. Verify HMAC signature (hardware authentication)
-    2. Validate active session (user context)
-    3. Validate weight (realistic range)
-    4. Check rate limits (fraud prevention)
-    5. Save image to disk (synchronous)
-    6. Return 200 OK immediately
-    7. Process AI classification in background
-    8. Award points if all validations pass
-
-    Required Headers:
-        - X-Bin-ID: Bin identifier (e.g., "BIN_001")
-        - X-Timestamp: Unix timestamp
-        - X-Signature: HMAC-SHA256(api_key, bin_id+timestamp+body)
-
-    Returns:
-        200 OK: Upload received, processing in background
-        401 Unauthorized: HMAC signature invalid
-        403 Forbidden: Session expired
-        422 Unprocessable Entity: Validation failed
-        429 Too Many Requests: Rate limit exceeded
-    """
     try:
-        # ===== STEP 1: VERIFY HMAC SIGNATURE (Hardware Authentication) =====
         logger.info(f"Received upload from bin {x_bin_id}")
 
-        # Get request body for HMAC verification
         body = await request.body()
 
         is_valid, bin, error_msg = verify_esp32_signature(
@@ -151,7 +102,7 @@ async def upload_discard(
 
         
         is_valid, session, error_msg = validate_session(
-            session_token=getattr(data, "session_token", None), # Será None, pois o ESP32 não envia mais
+            session_token=getattr(data, "session_token", None),
             bin_id=bin.id,
             db=db,
         )
@@ -167,7 +118,6 @@ async def upload_discard(
                 detail=error_msg or "Nenhuma sessão ativa encontrada. Escaneie o QR Code no app primeiro."
             )
 
-        # ===== STEP 3: VALIDATE WEIGHT =====
         is_valid, error_msg = validate_weight(
             weight_grams=data.weight_grams,
             user_id=session.user_id,
@@ -177,7 +127,6 @@ async def upload_discard(
         if not is_valid:
             raise HTTPException(status_code=422, detail=error_msg)
 
-        # ===== STEP 4: CHECK RATE LIMITS =====
         is_allowed, error_msg = check_rate_limits(
             user_id=session.user_id,
             session_id=session.id,
@@ -187,12 +136,11 @@ async def upload_discard(
         if not is_allowed:
             raise HTTPException(status_code=429, detail=error_msg)
 
-        # ===== STEP 5: SAVE IMAGE TO DISK (Synchronous) =====
         temp_discard = create_discard_record(
             session=session,
             bin=bin,
             weight_grams=data.weight_grams,
-            image_path="",  # Will be updated after saving
+            image_path="",
             db=db
         )
 
@@ -212,13 +160,11 @@ async def upload_discard(
                 db.commit()
                 logger.warning(f"Duplicate image detected for user {session.user_id}")
 
-        # ===== STEP 6: RETURN 200 OK IMMEDIATELY =====
         logger.info(
             f"Upload accepted. Discard ID: {temp_discard.id}. "
             f"Starting background AI processing..."
         )
 
-        # ===== STEP 7: SCHEDULE AI PROCESSING IN BACKGROUND =====
         celery_success = False
         if settings.ENABLE_CELERY_TASKS and process_image_with_ai_task is not None:
             try:
@@ -234,12 +180,11 @@ async def upload_discard(
                 image_path=image_path,
             )
 
-        # Update session validation checkpoints
         background_tasks.add_task(
             update_session_validation_status,
             session=session,
             weight_validated=True,
-            vision_validated=False,  # Pending
+            vision_validated=False,
             db=db
         )
 
@@ -268,23 +213,7 @@ async def bin_heartbeat(
     db: Session = Depends(get_db),
     request: Request = None
 ):
-    """
-    **ESP32 Endpoint: Health Check / Heartbeat**
-
-    Allows bins to report their status periodically.
-    Updates last_seen_at timestamp and current load.
-
-    Required Headers:
-        - X-Bin-ID: Bin identifier
-        - X-Timestamp: Unix timestamp
-        - X-Signature: HMAC signature
-
-    Returns:
-        200 OK: Heartbeat acknowledged
-        401 Unauthorized: HMAC signature invalid
-    """
     try:
-        # Verify signature
         body = await request.body()
         is_valid, bin, error_msg = verify_esp32_signature(
             bin_code=x_bin_id,
@@ -298,7 +227,6 @@ async def bin_heartbeat(
         if not is_valid or not bin:
             raise HTTPException(status_code=401, detail=error_msg)
 
-        # Update bin status
         bin.current_load_kg = data.current_load_kg
         bin.firmware_version = data.firmware_version
         bin.last_seen_at = datetime.utcnow()

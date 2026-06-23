@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 import secrets
 import hashlib
 
-# Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from database import SessionLocal, init_db, check_db_connection, engine
@@ -23,14 +22,12 @@ from services.auth_service import hash_password
 
 
 def print_header(text: str):
-    """Print formatted section header"""
     print(f"\n{'=' * 60}")
     print(f"  {text}")
     print('=' * 60)
 
 
 def check_database_connection():
-    """Verify database connectivity"""
     print_header("Checking Database Connection")
 
     if check_db_connection():
@@ -46,7 +43,6 @@ def check_database_connection():
 
 
 def initialize_database():
-    """Create all database tables"""
     print_header("Initializing Database Tables")
 
     try:
@@ -59,10 +55,8 @@ def initialize_database():
 
 
 def seed_materials(db: Session):
-    """Populate materials table with recyclable types"""
     print_header("Seeding Materials Data")
 
-    # Check if already seeded
     existing_count = db.query(Material).count()
     if existing_count > 0:
         print(f"⚠ Materials already exist ({existing_count} records). Skipping...")
@@ -169,10 +163,8 @@ def seed_materials(db: Session):
 
 
 def create_test_user(db: Session):
-    """Create a test user account"""
     print_header("Creating Test User")
 
-    # Check if test user exists
     existing = db.query(User).filter(User.email == "test@ecomais.com").first()
     if existing:
         print("⚠ Test user already exists. Skipping...")
@@ -205,17 +197,14 @@ def create_test_user(db: Session):
 
 
 def create_test_bin(db: Session):
-    """Create a test smart bin"""
     print_header("Creating Test Smart Bin")
 
-    # Check if test bin exists
     existing = db.query(SmartBin).filter(SmartBin.bin_code == "BIN_TEST_001").first()
     if existing:
         print("⚠ Test bin already exists. Skipping...")
         return existing
 
-    # Generate hardware API key (64 random bytes, hex encoded)
-    api_key = secrets.token_hex(32)  # 32 bytes = 64 hex chars
+    api_key = secrets.token_hex(32)
     api_key_hash = hashlib.sha256(api_key.encode()).hexdigest()
 
     bin = SmartBin(
@@ -246,7 +235,6 @@ def create_test_bin(db: Session):
 
 
 def create_test_session(db: Session, user: User, bin: SmartBin):
-    """Create a test active session"""
     print_header("Creating Test Session")
 
     session_token = secrets.token_urlsafe(32)
@@ -275,7 +263,6 @@ def create_test_session(db: Session, user: User, bin: SmartBin):
 
 
 def display_summary():
-    """Display setup summary"""
     print_header("Setup Complete!")
 
     print("""
@@ -312,7 +299,6 @@ Happy coding! 🚀🌱
 
 
 def main():
-    """Main setup workflow"""
     print("""
 ╔══════════════════════════════════════════════════════════╗
 ║                                                          ║
@@ -321,17 +307,14 @@ def main():
 ╚══════════════════════════════════════════════════════════╝
     """)
 
-    # Step 1: Check database connection
     if not check_database_connection():
         print("\n❌ Setup failed. Fix database connection and try again.")
         sys.exit(1)
 
-    # Step 2: Initialize database
     if not initialize_database():
         print("\n❌ Setup failed. Could not create database tables.")
         sys.exit(1)
 
-    # Step 3: Seed data
     db = SessionLocal()
     try:
         seed_materials(db)
@@ -345,7 +328,6 @@ def main():
     finally:
         db.close()
 
-    # Step 4: Display summary
     display_summary()
 
 
