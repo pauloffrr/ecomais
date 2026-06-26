@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 class DiscardHistoryItem(BaseModel):
     id: int
+    session_id: int
     weight_grams: float
     points_awarded: int
     is_validated: bool

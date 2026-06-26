@@ -76,6 +76,25 @@ const MATERIAL_TRANSLATIONS = {
 const getMaterialNamePtBr = (material) =>
   MATERIAL_TRANSLATIONS[material.name] ?? material.name;
 
+const SESSION_BADGE = {
+  active: {
+    label: 'SESSAO ATIVA',
+    status: 'active',
+  },
+  completed: {
+    label: 'SESSAO CONCLUIDA',
+    status: 'completed',
+  },
+  expired: {
+    label: 'SESSAO EXPIRADA',
+    status: 'expired',
+  },
+  idle: {
+    label: 'AGUARDANDO QR',
+    status: 'idle',
+  },
+};
+
 function MachineInfoCard({ session, connectedAt }) {
   const machine = session?.machine;
 
@@ -187,10 +206,7 @@ export default function ScannerScreen({ navigation }) {
     [user]
   );
 
-  const connectionStatus = scanner.session?.machine?.status ?? 'offline';
-  const connectionLabel = scanner.machineConnected
-    ? String(connectionStatus).toUpperCase()
-    : 'AGUARDANDO QR';
+  const sessionBadge = SESSION_BADGE[scanner.sessionStatus] ?? SESSION_BADGE.idle;
 
   const stats = useMemo(
     () => [
@@ -291,7 +307,7 @@ export default function ScannerScreen({ navigation }) {
             <Header appName="Eco+" user={headerUser} />
 
             <View style={styles.badgeWrapper}>
-              <StatusBadge label={connectionLabel} status={connectionStatus} />
+              <StatusBadge label={sessionBadge.label} status={sessionBadge.status} />
             </View>
 
             <View style={styles.copy}>

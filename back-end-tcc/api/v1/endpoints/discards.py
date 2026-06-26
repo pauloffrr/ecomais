@@ -40,6 +40,7 @@ def get_discard_history(
     rows = (
         db.query(
             Discard.id,
+            Discard.session_id,
             Discard.weight_grams,
             Discard.points_awarded,
             Discard.is_validated,
@@ -65,6 +66,7 @@ def get_discard_history(
     items = [
         DiscardHistoryItem(
             id=row.id,
+            session_id=row.session_id,
             weight_grams=row.weight_grams,
             points_awarded=row.points_awarded,
             is_validated=row.is_validated,

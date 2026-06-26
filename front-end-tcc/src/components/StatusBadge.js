@@ -2,11 +2,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
 
 export default function StatusBadge({ label, status = 'online' }) {
-  const online = status === 'online' || status === 'active';
+  const isOnline = status === 'online' || status === 'active' || status === 'completed';
+  const isExpired = status === 'expired' || status === 'offline';
 
   return (
     <View style={styles.badge}>
-      <View style={[styles.dot, online ? styles.dotOnline : styles.dotOffline]} />
+      <View style={[styles.dot, isOnline && styles.dotOnline, isExpired && styles.dotOffline]} />
       <Text style={styles.label}>{label}</Text>
     </View>
   );
@@ -32,6 +33,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+    backgroundColor: colors.inactive,
   },
   dotOnline: {
     backgroundColor: colors.primaryLight,

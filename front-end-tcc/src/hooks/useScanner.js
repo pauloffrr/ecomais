@@ -1,9 +1,16 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDiscards } from './useDiscards';
 import { useMaterials } from './useMaterials';
 import { useSession } from './useSession';
 
 const WEEKLY_GOAL_ITEMS = 20;
+const SESSION_POLL_INTERVAL_MS = 3000;
+const SESSION_STATUS = {
+  idle: 'idle',
+  active: 'active',
+  completed: 'completed',
+  expired: 'expired',
+};
 
 const isSameDay = (date, base = new Date()) =>
   date.getFullYear() === base.getFullYear() &&
@@ -27,6 +34,7 @@ export const useScanner = () => {
   const [scannedCode, setScannedCode] = useState(null);
   const [manualModalVisible, setManualModalVisible] = useState(false);
   const [lastConnectedAt, setLastConnectedAt] = useState(null);
+  const [sessionStatus, setSessionStatus] = useState(SESSION_STATUS.idle);
   const materialsState = useMaterials();
   const discardsState = useDiscards();
   const sessionState = useSession();
@@ -61,10 +69,11 @@ export const useScanner = () => {
     async (machineQr) => {
       setScannedCode(machineQr);
       const session = await sessionState.startSession(machineQr);
+      setSessionStatus(SESSION_STATUS.active);
       setLastConnectedAt(new Date());
       return session;
     },
-    [sessionState]
+    [sessionState.startSession]
   );
 
   const refresh = useCallback(async () => {
@@ -76,8 +85,45 @@ export const useScanner = () => {
 
   const resetScan = useCallback(() => {
     setScannedCode(null);
+    setSessionStatus(SESSION_STATUS.idle);
     sessionState.resetSession();
-  }, [sessionState]);
+  }, [sessionState.resetSession]);
+
+  const finishSession = useCallback(
+    (status) => {
+      setSessionStatus(status);
+      sessionState.resetSession();
+    },
+    [sessionState.resetSession]
+  );
+
+  useEffect(() => {
+    const session = sessionState.session;
+    if (!session) return undefined;
+
+    const syncSession = async () => {
+      const expiresAt = session.expires_at ? new Date(session.expires_at) : null;
+      if (expiresAt && expiresAt <= new Date()) {
+        finishSession(SESSION_STATUS.expired);
+        await discardsState.refetch({ refresh: true });
+        return;
+      }
+
+      const latestDiscards = await discardsState.refetch({ refresh: true });
+      const sessionCompleted = latestDiscards.some(
+        (discard) => Number(discard.session_id) === Number(session.id) && discard.is_validated
+      );
+
+      if (sessionCompleted) {
+        finishSession(SESSION_STATUS.completed);
+      }
+    };
+
+    const timer = setInterval(syncSession, SESSION_POLL_INTERVAL_MS);
+    syncSession();
+
+    return () => clearInterval(timer);
+  }, [discardsState.refetch, finishSession, sessionState.session]);
 
   return {
     acceptedMaterials: materialsState.materials,
@@ -93,6 +139,7 @@ export const useScanner = () => {
     scanning: sessionState.loading,
     session: sessionState.session,
     sessionActive: Boolean(sessionState.session),
+    sessionStatus,
     setManualModalVisible,
     scanMachine,
     refresh,

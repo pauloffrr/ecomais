@@ -198,10 +198,12 @@ def test_process_image_with_ai_success_awards_points(monkeypatch):
     assert discard.is_validated is True
     assert discard.points_awarded == 120
     assert discard.points_applied is True
-    assert user.total_points == 120
+    assert user.total_points == 0
     assert user.total_discards == 1
     assert db.add.called
     assert any(isinstance(call.args[0], Reward) for call in db.add.call_args_list)
+    reward = next(call.args[0] for call in db.add.call_args_list if isinstance(call.args[0], Reward))
+    assert reward.points == 120
 
 
 def test_ai_classification_executes_with_lock_and_logs(monkeypatch, caplog):

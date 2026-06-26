@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import {
   ActivityIndicator,
@@ -43,6 +44,8 @@ const REWARD_CATEGORIES = [
   { id: 'sustainability', label: 'Sustentabilidade' },
   { id: 'experiences', label: 'Experiencias' },
 ];
+const FOCUS_SYNC_INTERVAL_MS = 2500;
+const FOCUS_SYNC_ATTEMPTS = 4;
 
 const getInitials = (name) => {
   const parts = name?.trim().split(/\s+/).filter(Boolean) ?? [];
@@ -93,14 +96,42 @@ export default function RewardsScreen({ navigation }) {
     [activeCategory, pointsBalance]
   );
 
-  const refreshRewards = async () => {
+  const refreshRewards = useCallback(async () => {
     await Promise.all([
       refetchUser({ refresh: true }),
       refetchRewards({ refresh: true }),
       refetchDiscards({ refresh: true }),
       refetchMaterials({ refresh: true }),
     ]);
-  };
+  }, [refetchDiscards, refetchMaterials, refetchRewards, refetchUser]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let attempts = 0;
+      let active = true;
+
+      const syncRewards = async () => {
+        attempts += 1;
+        await refreshRewards();
+      };
+
+      syncRewards();
+
+      const timer = setInterval(() => {
+        if (!active || attempts >= FOCUS_SYNC_ATTEMPTS) {
+          clearInterval(timer);
+          return;
+        }
+
+        syncRewards();
+      }, FOCUS_SYNC_INTERVAL_MS);
+
+      return () => {
+        active = false;
+        clearInterval(timer);
+      };
+    }, [refreshRewards])
+  );
 
   const handleTabChange = (key) => {
     if (key === 'home') navigation.navigate('Home');
